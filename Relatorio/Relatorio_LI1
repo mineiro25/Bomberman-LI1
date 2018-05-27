@@ -1,0 +1,19 @@
+\documentclass[a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[portuges]{babel}
+\usepackage{a4wide}
+\usepackage{graphicx}
+
+
+\title{Projeto de Laboratórios de Informática 1\\Grupo 152}
+\author{Carlos António Soares de Castro Gomes () & Nuno Ricardo Araújo da Silva (78156)}
+\date{\today}
+ 
+
+\begin{document}
+\maketitle
+
+ola
+
+\end{document}

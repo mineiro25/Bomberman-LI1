@@ -1,0 +1,19 @@
+\select@language {portuges}
+\contentsline {section}{\numberline {1}Introdu\IeC {\c c}\IeC {\~a}o}{1}
+\contentsline {section}{\numberline {2}Objetivo - O que foi proposto?}{2}
+\contentsline {subsection}{\numberline {2.1}Primeira Tarefa - Gerar mapas}{2}
+\contentsline {subsection}{\numberline {2.2}Segunda Tarefa - Reagir Comandos}{2}
+\contentsline {subsection}{\numberline {2.3}Terceira Tarefa - Comprimir o Estado de Jogo}{2}
+\contentsline {subsection}{\numberline {2.4}Quarta Tarefa - Reagir \IeC {\`a} Passagem do Tempo}{2}
+\contentsline {subsection}{\numberline {2.5}Quinta Tarefa - Implementa\IeC {\c c}\IeC {\~a}o do jogo em Gloss}{2}
+\contentsline {subsection}{\numberline {2.6}Sexta Tarefa - Implementar Estrat\IeC {\'e}gia de Combate}{2}
+\contentsline {section}{\numberline {3}Concep\IeC {\c c}\IeC {\~a}o da Solu\IeC {\c c}\IeC {\~a}o}{2}
+\contentsline {subsection}{\numberline {3.1}Primeira Tarefa - Gerar Mapas}{2}
+\contentsline {subsection}{\numberline {3.2}Segunda Tarefa - Reagir comandos}{3}
+\contentsline {subsection}{\numberline {3.3}Terceira Tarefa - Comprimir o Estado de Jogo - Encode }{3}
+\contentsline {subsection}{\numberline {3.4}Terceira Tarefa - Comprimir o Estado de Jogo - Decode }{4}
+\contentsline {subsection}{\numberline {3.5}Quarta Tarefa - Reagir \IeC {\`a} Passagem do Tempo}{4}
+\contentsline {subsection}{\numberline {3.6}Quinta Tarefa - Implementa\IeC {\c c}\IeC {\~a}o do jogo em Gloss}{4}
+\contentsline {subsection}{\numberline {3.7}Sexta Tarefa - Implementar Estrat\IeC {\'e}gia de Combate}{5}
+\contentsline {subsection}{\numberline {3.8}Testes}{6}
+\contentsline {section}{\numberline {4}Conclus\IeC {\~o}es}{6}

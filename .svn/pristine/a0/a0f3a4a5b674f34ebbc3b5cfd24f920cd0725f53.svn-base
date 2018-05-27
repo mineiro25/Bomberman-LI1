@@ -1,0 +1,219 @@
+{-|
+Module : Main
+Description : Tarefa1.hs - Projeto
+Copyright : Carlos Gomes (A77185)
+      Nuno Silva (A78156)
+
+-}
+
+module Tarefa3 where 
+  
+import System.Environment
+import Data.Char
+import Data.List 
+
+
+{- | Codifica o estado do jogo para uma string -}
+encode :: [String] -> String
+encode l = dimensao l ++ "/" ++ posicaoBombsFlames 0 0 (contaLinhas l) l ++ bombsFlames l ++detetaBombasColocadas l  ++ posicaoJogador l  
+
+
+
+
+{- | Determina a dimensão do mapa -}
+dimensao :: [String] -> String
+dimensao lista = dimensaoString (contaLinhas lista)
+
+{- | Conta o número de linhas que começam por '#' de forma a saber a dimensão-}
+contaLinhas :: [String] -> Int 
+contaLinhas [] = 0
+contaLinhas ((x:xs):ys) = if x=='#' then 1+contaLinhas ys else contaLinhas ys
+
+{- | Converte a dimensão de inteiro para string -}
+dimensaoString :: Int -> String
+dimensaoString d = show d
+
+{- | Percorre o mapa e à medida que encontra '?' guarda a respetiva posição -}
+posicaoBombsFlames :: Int -> Int -> Int -> [String] -> String
+posicaoBombsFlames _ _ _ [] = []
+posicaoBombsFlames x y z ((h:t):c) = if y==0 then posicaoBombsFlames 0 (y+1) z c else 
+                                 if x==0  then posicaoBombsFlames (x+1) y z (t:c) else 
+                                 if x>=(z-1) then posicaoBombsFlames 0 (y+1) z c else 
+                                 if y>=(z-1) then [] else 
+                                 if h=='?'   then show x ++ " " ++show y ++"/" ++ posicaoBombsFlames (x+1) y z (t:c) else posicaoBombsFlames (x+1) y z (t:c)
+
+{- | Guarda a posição de cada jogador numa string -}
+posicaoJogador :: [String] -> String
+posicaoJogador [] = [] 
+posicaoJogador ((x:xs):ys) = if (x==intToDigit 0) || (x==intToDigit 1) || (x==intToDigit 2) || (x==intToDigit 3) then "P " ++ (x:xs) ++"/"++ posicaoJogador ys else posicaoJogador ys 
+
+{- | Guarda  as informações das bombs/flames numa string-}
+bombsFlames :: [String] -> String
+bombsFlames [] = []
+bombsFlames ((x:xs):ys) = if (x=='+') || (x=='!') then (x:xs)++"/"++bombsFlames ys else bombsFlames ys 
+
+{- | Deteta as bombas colocadas pelos jogadores e guarda numa string -}
+detetaBombasColocadas :: [String] -> String
+detetaBombasColocadas [] = []
+detetaBombasColocadas ((x:xs):ys) = if x=='*' then (x:xs) ++ "/"++ detetaBombasColocadas ys else detetaBombasColocadas ys 
+
+
+{- | Descodifica a string para o estado de jogo -}
+decode :: String -> [String]
+decode l = if (converteDimensao(getDimensao l)) <10 then desenhaPontosMapa (listaPosicoes(converteLista(drop 2 (arranjarPosicoes l)))) 0 (converteDimensao(getDimensao l)) (mapaOriginal 0 (converteDimensao (getDimensao l))) ++ converteLista(getBombsFlames l (-1))  ++ (converteLista(getBombasColocadas l (-1)))++ (converteLista(getPosicoes l (-1)))
+	else desenhaPontosMapa (listaPosicoes(converteLista(drop 3 (arranjarPosicoes l)))) 0 (converteDimensao(getDimensao l)) (mapaOriginal 0 (converteDimensao (getDimensao l))) ++ converteLista(getBombsFlames l (-1))  ++ (converteLista(getBombasColocadas l (-1)))++ (converteLista(getPosicoes l (-1)))
+
+{- |  Converte uma string com par de coordenadas, por exemplo "2 3", para um par de inteiros, neste caso (2,3) -}
+parCoordenadas :: String -> (Int , Int)   
+parCoordenadas lista =  (read (primeiraCoordenada lista) :: Int, read (segundaCoordenada lista 0)::Int)
+
+{- | Devolve a 1ª coordenada da string, neste caso a coluna. (Ex: primeiraCoordenada "2 3" -> 2)-}
+primeiraCoordenada :: String -> String
+primeiraCoordenada (x:xs) = if x==' ' then [] else x:primeiraCoordenada xs 
+
+{- | Devolve a 2ª coordenada da string, neste caso a linha. (Ex: segundaCoordenada "2 3" -> 3)-}
+segundaCoordenada :: String -> Int -> String
+segundaCoordenada [] _ = []
+segundaCoordenada (x:xs) contador = if contador==0 && x/=' ' then segundaCoordenada xs contador else 
+                                  if contador==0 && x==' ' then segundaCoordenada xs (contador+1) else 
+                                  if contador /=0 then x : segundaCoordenada xs (contador) else []
+
+
+{- | Converte as coordenadas da string para uma lista de coordenadas. (Ex: listaPosicoes ["2 3","15 3"] -> [(2,3),(15,3)]-}
+listaPosicoes :: [String] -> [(Int,Int)] 
+listaPosicoes [] = []
+listaPosicoes ((x:xs):ys) = parCoordenadas (x:xs) : listaPosicoes ys 
+
+{- | Dá a posição de cada jogador numa string-}
+getPosicoes :: String -> Int -> String  
+getPosicoes [] _ = []
+getPosicoes (x:xs) contador = if x=='/' && contador/=(-1) then '/':getPosicoes xs (-1) else 
+                            if x/='P' && contador<0 then getPosicoes xs contador else 
+                            if x=='P' then getPosicoes xs 0 else
+                            if contador==0 && x==' ' then getPosicoes xs (contador+1) else  
+                            if contador>=1 then x:getPosicoes xs (contador+1) else []
+
+{- | Função auxiliar da função converteLista -}
+convertePosicoesString :: String -> String
+convertePosicoesString [] = []
+convertePosicoesString (x:xs) = if x=='/' then [] else x:convertePosicoesString xs 
+
+{- | Converte as posições para uma lista de strings com posições-}
+converteLista :: String -> [String] 
+converteLista [] = []
+converteLista l = convertePosicoesString l : converteLista (apaga l) 
+
+{- | Arranja as posições de cada bomb/flame -}
+arranjarPosicoes :: String -> String
+arranjarPosicoes [] = []
+arranjarPosicoes (x:xs) = if x/='+' && x/='!' && x/='P' && x/='*' then x:arranjarPosicoes xs else 
+                           if x=='/' then arranjarPosicoes xs else []
+
+{-| Tira os traços no processo de conversão de posições para lista-}
+apaga :: String -> String
+apaga [] = []
+apaga (x:xs) = if x=='/' then xs else apaga xs
+
+
+{- | Obtém informação das posições dos jogadores numa determinada linha -}
+getBombasColocadas :: String -> Int -> String
+getBombasColocadas [] _ = []
+getBombasColocadas (x:xs) contador = if x=='/' && contador<0 then getBombasColocadas xs (-1) else
+                                     if x=='/' && contador>=0 then '/':getBombasColocadas xs (-1) else 
+                                     if x=='*' then x:getBombasColocadas xs 0 else 
+                                     if contador>=0 then x:getBombasColocadas xs contador else getBombasColocadas xs contador
+
+{- | Obtém informação das posições dos bomb/flames numa determinada linha -}
+getBombsFlames :: String -> Int -> String
+getBombsFlames [] _ = []
+getBombsFlames (x:xs) contador = if x=='/' && contador<0 then getBombsFlames xs (-1) else
+                                 if x=='/' && contador>=0 then '/':getBombsFlames xs (-1) else 
+                                 if (x=='+' || x=='!')  && contador /= (-5) then x:getBombsFlames xs 0 else 
+                                 if x=='P' then getBombsFlames xs (-5) else 
+                                 if contador>=0 then x:getBombsFlames xs contador else getBombsFlames xs contador
+
+{- | Desenhar os "?" numa linha -}
+desenhaPontos :: [(Int,Int)] -> Int -> Int -> String -> String
+desenhaPontos [] _ _ [] = []
+desenhaPontos [] _ _ l = l 
+desenhaPontos _ _ _ [] = []
+desenhaPontos ((x,y):xs) col lin (t:ys) = if col==x && lin==y then '?':desenhaPontos xs (col+1) lin ys else t:desenhaPontos ((x,y):xs) (col+1) lin ys 
+
+{- | Remove da lista os pontos,já colocados no mapa -}
+apagaPontos :: [(Int,Int)] -> Int -> Int -> String -> [(Int,Int)]
+apagaPontos [] _ _ [] = []
+apagaPontos [] _ _ l = []
+apagaPontos l _ _ [] = l
+apagaPontos ((x,y):xs) col lin (t:ys) = if col==x && lin==y then apagaPontos xs (col+1) lin ys else apagaPontos ((x,y):xs) (col+1) lin ys 
+
+{- | Desenha os '?' no mapa todo-}
+desenhaPontosMapa :: [(Int,Int)] -> Int -> Int -> [String] -> [String]
+desenhaPontosMapa [] _ _ [] = []
+desenhaPontosMapa [] _ _ l = l  
+desenhaPontosMapa ((a,b):t) lin dim ((x:xs):ys) = if lin==0 || lin==(dim-1) then (x:xs):desenhaPontosMapa ((a,b):t) (lin+1) dim ys  else 
+                                          if lin==b then (desenhaPontos ((a,b):t) 0 lin (x:xs)):desenhaPontosMapa (apagaPontos ((a,b):t) 0 lin (x:xs)) (lin+1) dim  ys else (x:xs):desenhaPontosMapa ((a,b):t) (lin+1) dim ys
+
+{- | Dá a dimensão do mapa -}
+getDimensao :: String -> String
+getDimensao [] = []
+getDimensao (x:xs) = if x=='/' then [] else x:getDimensao xs 
+
+{- | Converte a dimensão para inteiro -}
+converteDimensao :: String -> Int
+converteDimensao [] = 0 
+converteDimensao (x:xs) = read (x:xs) :: Int 
+
+-- Copy da tarefa1 para fazer os # fixos
+-- Desenha todos os '#'
+desenhaTodos :: Int-> Int-> String
+desenhaTodos a b = if a<0 then [] else if a==b then [] else '#':desenhaTodos (a+1) b
+
+-- Desenha o 1º e ultimo '#'-++
+desenhaInicFim :: Int -> Int -> String 
+desenhaInicFim a b = if a<0 then [] else if a>=b then [] else if a==0 || a==(b-1) then '#':desenhaInicFim (a+1) b else ' ':desenhaInicFim (a+1) b
+
+
+-- Desenha os '#' nas posições pares
+desenhaPosPares :: Int -> Int -> String
+desenhaPosPares a b = if a<0 then [] else if a>=b then [] else if even a then '#':desenhaPosPares (a+1) b else ' ':desenhaPosPares (a+1) b 
+
+
+-- Desenhar o mapa só com #
+mapaOriginal :: Int -> Int -> [String]
+mapaOriginal a b = if a<0 then [] else 
+                   if a>=b then [] else 
+                   if (a==0) || a==(b-1) then (desenhaTodos 0 b):mapaOriginal (a+1) b else 
+                   if odd a then (desenhaInicFim 0 b):mapaOriginal (a+1) b else 
+                   if even a then (desenhaPosPares 0 b):mapaOriginal (a+1) b else []
+
+-- Funções extras adicionadas
+priCoordJog :: String -> Int -> String
+priCoordJog [] _ = []
+priCoordJog (x:xs) contador = if x==' ' then priCoordJog xs (contador+1) else 
+                              if x/=' ' && contador==1 then x:priCoordJog xs (contador) else priCoordJog xs contador
+
+segCoordJog :: String -> Int -> String 
+segCoordJog [] _ = [] 
+segCoordJog (x:xs) contador = if x==' ' then segCoordJog xs (contador+1) else 
+                              if x/=' ' && contador==2 then x:segCoordJog xs contador else segCoordJog xs contador
+
+listaCoordsJog :: [String] -> [(Int,Int)]
+listaCoordsJog [] = []
+listaCoordsJog ((x:xs):ys) = ((read (priCoordJog (x:xs) 0)::Int), (read (segCoordJog (x:xs) 0)::Int) ): listaCoordsJog ys                               
+
+
+
+
+
+
+{-
+{- | Função main -}
+main :: IO ()
+main = do a <- getArgs
+          let p = a !! 0
+          w <- getContents
+          if length a == 1 && length p == 2 && (p=="-e" || p=="-d")
+             then if p=="-e" then putStr $ encode $ lines w
+                             else putStr $ unlines $ decode w
+             else putStrLn "Parâmetros inválidos"
+-}

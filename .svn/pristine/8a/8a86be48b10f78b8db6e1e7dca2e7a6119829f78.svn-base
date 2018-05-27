@@ -1,0 +1,90 @@
+module Tarefa6_li1g152 where
+
+import Tarefa1
+
+type Comando = Char 
+
+
+comandos = ['U','D','L','R','B']
+
+
+bot :: [String] -> Int -> Int -> Maybe Char
+bot mapa player ticks = Nothing
+
+
+
+
+
+verificaComandos :: [Comando] -> [String] -> (Int,Int) -> [Comando]
+verificaComandos [] _ _ = [] 
+verificaComandos (x:xs) mapa (col,lin) 
+        | x=='U' = if verificaUp x mapa (col,lin) (0,0) then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+        | x=='D' = if verificaDown x mapa (col,lin) (0,0) then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+        | x=='L' = if verificaLeft x mapa (col,lin) (0,0) then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+        | x=='R' = if verificaRight x mapa (col,lin) (0,0) then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+        | otherwise = []
+
+
+
+
+
+
+
+
+
+
+
+
+-- Verifica se o bot pode ir para cima 
+verificaUp :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaUp comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin-1) /= y = verificaUp comando hs (col,lin) (x,y+1)
+         | (lin-1) == y = verificaLinhaUp comando (h:t) (col,lin) (x,y)
+
+verificaLinhaUp :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaUp _ [] _ _ = False 
+verificaLinhaUp comando (h:t) (col,lin) (x,y) 
+         | col /= x = verificaLinhaUp comando t (col,lin) (x+1,y)
+         | col == x && h == ' ' = True 
+         | otherwise = False 
+
+
+-- Verifica se o bot pode ir para baixo 
+verificaDown :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaDown comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin+1) /= y = verificaDown comando hs (col,lin) (x,y+1)
+         | (lin+1) == y = verificaLinhaDown comando (h:t) (col,lin) (x,y)
+
+verificaLinhaDown :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaDown _ [] _ _ = False 
+verificaLinhaDown comando (h:t) (col,lin) (x,y) 
+         | col /= x = verificaLinhaDown comando t (col,lin) (x+1,y)
+         | col == x && h == ' ' = True 
+         | otherwise = False 
+
+-- Verifica se o bot pode ir para esquerda 
+verificaLeft :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaLeft comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin) /= y = verificaLeft comando hs (col,lin) (x,y+1)
+         | (lin) == y = verificaLinhaLeft comando (h:t) (col,lin) (x,y)
+
+verificaLinhaLeft :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaLeft _ [] _ _ = False 
+verificaLinhaLeft comando (h:t) (col,lin) (x,y) 
+         | (col-1) /= x = verificaLinhaLeft comando t (col,lin) (x+1,y)
+         | (col-1) == x && h == ' ' = True 
+         | otherwise = False 
+
+-- Verifica se o bot pode ir para Direita 
+verificaRight :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaRight comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin) /= y = verificaRight comando hs (col,lin) (x,y+1)
+         | (lin) == y = verificaLinhaRight comando (h:t) (col,lin) (x,y)
+
+verificaLinhaRight :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaRight _ [] _ _ = False 
+verificaLinhaRight comando (h:t) (col,lin) (x,y) 
+         | (col+1) /= x = verificaLinhaRight comando t (col,lin) (x+1,y)
+         | (col+1) == x && h == ' ' = True 
+         | otherwise = False 
+

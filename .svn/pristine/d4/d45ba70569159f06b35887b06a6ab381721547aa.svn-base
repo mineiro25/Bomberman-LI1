@@ -1,0 +1,108 @@
+import System.Environment
+import Data.Char
+import Data.List 
+
+encode :: [String] -> String
+encode l = dimensao l ++ "/" ++ posicaoBombsFlames 0 0 (contaLinhas l) l ++ "/ " ++ posicaoJogador l  
+
+
+
+
+-- Determinar dimensão do mapa 
+dimensao :: [String] -> String
+dimensao lista = dimensaoString (contaLinhas lista)
+
+contaLinhas :: [String] -> Int 
+contaLinhas [] = 0
+contaLinhas ((x:xs):ys) = if x=='#' then 1+contaLinhas ys else contaLinhas ys
+
+
+dimensaoString :: Int -> String
+dimensaoString d = show d
+
+
+-- y linha 
+-- x coluna 
+-- Com problemas 
+posicaoBombsFlames :: Int -> Int -> Int -> [String] -> String
+posicaoBombsFlames _ _ _ [] = []
+posicaoBombsFlames x y z ((h:t):c) = if y==0 then posicaoBombsFlames 0 (y+1) z c else 
+	                                 if x==0  then posicaoBombsFlames (x+1) y z (t:c) else 
+	                                 if x>=(z-1) then posicaoBombsFlames 0 (y+1) z c else 
+	                                 if y>=(z-1) then [] else 
+	                                 if h=='?' 	 then show x ++ " " ++show y ++"/ " ++ posicaoBombsFlames (x+1) y z (t:c) else 
+	                                 posicaoBombsFlames (x+1) y z (t:c)
+
+
+posicaoBombaJogador :: [String] -> String
+posicaoBombaJogador [] = []
+posicaoBombaJogador ((x:xs):ys) = if x=='*' then (x:xs) ++ " " ++ posicaoBombaJogador ys else posicaoBombaJogador ys 
+
+
+posicaoJogador :: [String] -> String
+posicaoJogador [] = [] 
+posicaoJogador ((x:xs):ys) = if (x==intToDigit 0) || (x==intToDigit 1) || (x==intToDigit 2) || (x==intToDigit 3) then (x:xs) ++"/ "++ posicaoJogador ys else posicaoJogador ys 
+
+decode :: String -> [String]
+decode l = mapaOriginal 0 (converteDimensao (getDimensao l))
+
+getDimensao :: String -> String
+getDimensao (x:xs) = if x=='/ ' then [] else x:getDimensao xs 
+
+converteDimensao :: String -> Int
+converteDimensao (x:xs) = read (x:xs) :: Int 
+
+
+---------------------------------------- Copy da tarefa1 para fazer os # fixos -------------------------------------------------------------------------------------------------
+
+-- Desenha todos os '#'
+desenhaTodos :: Int-> Int-> String
+desenhaTodos a b = if a<0 then [] else 
+				   if a==b then [] else '#':desenhaTodos (a+1) b
+
+-- Desenha o 1º e ultimo '#'-++
+desenhaInicFim :: Int -> Int -> String 
+desenhaInicFim a b = if a<0 then [] else 
+					 if a>=b then [] else 	
+					 if a==0 || a==(b-1) then '#':desenhaInicFim (a+1) b else ' ':desenhaInicFim (a+1) b
+
+
+-- Desenha os '#' nas posições pares
+desenhaPosPares :: Int -> Int -> String
+desenhaPosPares a b = if a<0 then [] else
+					  if a>=b then [] else 
+					  if even a then '#':desenhaPosPares (a+1) b else ' ':desenhaPosPares (a+1) b 
+
+
+-- Desenhar o mapa só com #
+mapaOriginal :: Int -> Int -> [String]
+mapaOriginal a b = if a<0 then [] else 
+				   if a>=b then [] else 
+				   if (a==0) || a==(b-1) then (desenhaTodos 0 b):mapaOriginal (a+1) b else 
+				   if odd a then (desenhaInicFim 0 b):mapaOriginal (a+1) b else 
+				   if even a then (desenhaPosPares 0 b):mapaOriginal (a+1) b else []
+
+
+-- Consegue informação das posições do "?" numa linha só
+getPosicaoBombsFlames :: String -> Int -> String
+getPosicaoBombsFlames [] _ = []
+getPosicaoBombsFlames (x:xs) conta = if conta==0 && x== '/ ' then getPosicaoBombsFlames xs (conta+1) else
+	                                 if conta==0 && x/= '/ ' then getPosicaoBombsFlames xs conta else 
+	                                 if x/='/ ' && conta /=0 then x:getPosicaoBombsFlames xs conta else 
+	                                 if x=='/ ' && conta /=0 then '/ ':getPosicaoBombsFlames xs (conta+1) else []
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+main :: IO ()
+main = do a <- getArgs
+          let p = a !! 0
+          w <- getContents
+          if length a == 1 && length p == 2 && (p=="-e" || p=="-d")
+             then if p=="-e" then putStr $ encode $ lines w
+                             else putStr $ unlines $ decode w
+             else putStrLn "Parâmetros inválidos"

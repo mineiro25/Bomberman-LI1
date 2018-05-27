@@ -1,0 +1,243 @@
+{-|
+Module : Main
+Description : Tarefa1.hs - Projeto
+Copyright : Carlos Gomes (A77185)
+            Nuno Silva (A78156)
+
+-}
+
+
+module Tarefa6_li1g152 where
+
+import Tarefa1
+import Tarefa3
+
+import System.Random (randomRIO)
+import System.IO.Unsafe
+import Data.List
+import Data.Char
+
+
+
+{-| Define o Comando como um tipo de Char -}
+type Comando = Char 
+
+{- | Lista de comandos possíveis -}
+comandos = ['U','D','L','R','B']
+
+{- | Função principal para o bot funcionar -}
+bot :: [String] -> Int -> Int -> Maybe Char
+bot mapa player ticks = Just (unsafePerformIO(pick(verificaComandos comandos mapa (posicaoJogadorX mapa player))))
+
+
+{- | Verifica os comandos possiveis em cada posição que o jogador estiver. Por exemplo, se o jogador 0 estiver na posição inicial, só vai ser possivel mover-se para a direita/baixo ou colocar bomba-}
+verificaComandos :: [Comando] -> [String] -> (Int,Int) -> [Comando]
+verificaComandos [] _ _ = [] 
+verificaComandos (x:xs) mapa (col,lin) 
+        | x=='U' = if (verificaUp x mapa (col,lin) (0,0)) && ((verificaBombaColocada (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1))))) || (verificaBombaColocadaU (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1)))))) then 
+                                                         x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+                   
+    
+        | x=='D' = if verificaDown x mapa (col,lin) (0,0) && ((verificaBombaColocada (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1))))) || verificaBombaColocadaD (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1)))) )
+                                                         then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+    
+    
+        | x=='L' = if verificaLeft x mapa (col,lin) (0,0) && ((verificaBombaColocada (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1))))) || verificaBombaColocadaL (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1))))) then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+                   
+    
+        | x=='R' = if verificaRight x mapa (col,lin) (0,0) && ((verificaBombaColocada (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1))))) || verificaBombaColocadaR (col,lin) (listaBombas(converteLista(getBombasColocadas (encode mapa) (-1))))) then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+                   
+    
+        | x=='B' = if verificaBomba x mapa (col,lin) (0,0) && verificaBombaMata x (col,lin) (listaCoordsJog(converteLista(getPosicoes (encode mapa) (-1)))) then x:verificaComandos xs mapa (col,lin) else verificaComandos xs mapa (col,lin)
+                   
+        | otherwise = []
+
+{- | Verifica se jogador está em cima da bomba-}
+verificaBombaColocada :: (Int,Int) -> [((Int,Int),Int,Int,Int)] -> Bool
+verificaBombaColocada _  [] = False
+verificaBombaColocada (col,lin) (((x1,y1),j,r,t):xs) = if ((col==x1) && (lin==y1)) then True else verificaBombaColocada (col,lin) xs 
+        
+
+{- | Verifica se na linha acima do jogador existe alguma bomba prestes a rebentar-}
+verificaBombaColocadaU :: (Int,Int) -> [((Int,Int),Int,Int,Int)] -> Bool
+verificaBombaColocadaU _  [] = True 
+verificaBombaColocadaU (col,lin) (((x1,y1),j,r,t):xs) = if (((col)>=(x1-r)) && ((col)<=(x1+r))) && ((lin-1)==y1)   then False else verificaBombaColocadaU (col,lin) xs 
+
+{- | Verifica se na linha abaixo do jogador existe alguma bomba prestes a rebentar-}
+verificaBombaColocadaD :: (Int,Int) -> [((Int,Int),Int,Int,Int)] -> Bool
+verificaBombaColocadaD _  [] = True 
+verificaBombaColocadaD (col,lin) (((x1,y1),j,r,t):xs) = if (((col)>=(x1-r)) && ((col)<=(x1+r))) && ((lin+1)==y1)   then False else verificaBombaColocadaD (col,lin) xs 
+
+{- | Verifica se à esquerda do jogador existe alguma bomba prestes a rebentar-}
+verificaBombaColocadaL :: (Int,Int) -> [((Int,Int),Int,Int,Int)] -> Bool
+verificaBombaColocadaL _  [] = True 
+verificaBombaColocadaL (col,lin) (((x1,y1),j,r,t):xs) = if (((col-1)>=(x1-r)) && ((col-1)<=(x1+r))) && ((lin)==y1)   then False else verificaBombaColocadaL (col,lin) xs 
+
+{- | Verifica se à direita do jogador existe alguma bomba prestes a rebentar-}
+verificaBombaColocadaR :: (Int,Int) -> [((Int,Int),Int,Int,Int)] -> Bool
+verificaBombaColocadaR _  [] = True 
+verificaBombaColocadaR (col,lin) (((x1,y1),j,r,t):xs) = if (((col+1)>=(x1-r)) && ((col+1)<=(x1+r))) && ((lin)==y1)  then False else verificaBombaColocadaR (col,lin) xs 
+
+
+
+{- | Verifica se vale a pena colocar uma bomba -}
+verificaBomba :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool
+verificaBomba _ [] _ _= False 
+verificaBomba comando ((h:t):hs) (col,lin) (x,y) = if (y==(lin-1)) then if verificaLinhaBomba comando (h:t) (col,lin) (x,y) then True else verificaBomba comando hs (col,lin) (0,(y+1))  else 
+	                                               if (y==lin) then if verificaLinhaBomba2 comando (h:t) (col,lin) (x,y) then True else verificaBomba comando hs (col,lin) (0,(y+1)) else 
+	                                               if (y==(lin+1)) then if verificaLinhaBomba comando (h:t) (col,lin) (x,y) then True else verificaBomba comando hs (col,lin) (0,(y+1)) else verificaBomba comando hs (col,lin) (0,(y+1))
+
+{- | Verifica se há jogadores próximos do bot -}
+verificaBombaMata :: Comando -> (Int,Int) -> [(Int,Int)] -> Bool
+verificaBombaMata _ _ [] = False 
+verificaBombaMata comando (col,lin) ((x,y):xs) 
+         | (lin==y) && ((col+1)==x) = True 
+         | (lin==y) && ((col-1)==x) = True 
+         | ((lin-1)==y) && (col==x) = True 
+         | ((lin+1)==y) && (col==x) = True
+         | otherwise = verificaBombaMata comando (col,lin) xs 
+
+{- | Verifica se na linha acima do jogador existe alguma bomba prestes a rebentar-}
+verificaLinhaBomba2 :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaBomba2 _ [] _ _ = False 
+verificaLinhaBomba2 comando (h:t) (col,lin) (x,y)
+         | ( (col-1)==x) = if h/='#' && h/=' ' then True else verificaLinhaBomba2 comando t (col,lin) (x+1,y)
+         | ( (col+1)==x)= if h/='#' && h/=' ' then True else verificaLinhaBomba2 comando t (col,lin) (x+1,y)
+         | otherwise = verificaLinhaBomba2 comando t (col,lin) (x+1,y)
+ 
+
+verificaLinhaBomba :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaBomba comando (h:t) (col,lin) (x,y) 
+         | (col==x) && h/=' ' && h/='#' = True 
+         | (col/=x) = verificaLinhaBomba comando t (col,lin) (x+1,y)
+         | otherwise = False 
+
+
+
+{- | Verifica se o jogador pode mover-se para cima  -}
+verificaUp :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaUp comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin-1) /= y = verificaUp comando hs (col,lin) (x,y+1)
+         | (lin-1) == y = verificaLinhaUp comando (h:t) (col,lin) (x,y)
+
+{- | Verifica se o jogador pode mover-se para cima - Função Auxiliar -}
+verificaLinhaUp :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaUp _ [] _ _ = False 
+verificaLinhaUp comando (h:t) (col,lin) (x,y) 
+         | col /= x = verificaLinhaUp comando t (col,lin) (x+1,y)
+         | col == x && h == ' ' = True 
+         | otherwise = False 
+
+
+{- | Verifica se o jogador pode mover-se para baixo  -}
+verificaDown :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaDown comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin+1) /= y = verificaDown comando hs (col,lin) (x,y+1)
+         | (lin+1) == y = verificaLinhaDown comando (h:t) (col,lin) (x,y)
+
+{- | Verifica se o jogador pode mover-se para baixo - Função Auxiliar -}
+verificaLinhaDown :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaDown _ [] _ _ = False 
+verificaLinhaDown comando (h:t) (col,lin) (x,y) 
+         | col /= x = verificaLinhaDown comando t (col,lin) (x+1,y)
+         | col == x && h == ' ' = True 
+         | otherwise = False 
+
+{- | Verifica se o jogador pode mover-se para esquerda  -}
+verificaLeft :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaLeft comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin) /= y = verificaLeft comando hs (col,lin) (x,y+1)
+         | (lin) == y = verificaLinhaLeft comando (h:t) (col,lin) (x,y)
+
+{- | Verifica se o jogador pode mover-se para esquerda - Função Auxiliar  -}
+verificaLinhaLeft :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaLeft _ [] _ _ = False 
+verificaLinhaLeft comando (h:t) (col,lin) (x,y) 
+         | (col-1) /= x = verificaLinhaLeft comando t (col,lin) (x+1,y)
+         | (col-1) == x && h == ' ' = True 
+         | otherwise = False 
+
+{- | Verifica se o jogador pode mover-se para direita  -}
+verificaRight :: Comando -> [String] -> (Int,Int) -> (Int,Int) -> Bool 
+verificaRight comando ((h:t):hs) (col,lin) (x,y) 
+         | (lin) /= y = verificaRight comando hs (col,lin) (x,y+1)
+         | (lin) == y = verificaLinhaRight comando (h:t) (col,lin) (x,y)
+
+{- | Verifica se o jogador pode mover-se para direita - Função auxiliar  -}
+verificaLinhaRight :: Comando -> String -> (Int,Int) -> (Int,Int) -> Bool
+verificaLinhaRight _ [] _ _ = False 
+verificaLinhaRight comando (h:t) (col,lin) (x,y) 
+         | (col+1) /= x = verificaLinhaRight comando t (col,lin) (x+1,y)
+         | (col+1) == x && h == ' ' = True 
+         | otherwise = False 
+
+{- | Converte a lista de string que contém informação sobre bombas para ((col,lin),jogador,raio,tempo)  -}
+listaBombas :: [String] -> [((Int,Int),Int,Int,Int)]
+listaBombas [] = []
+listaBombas ((x:xs):ys) = (((read (primeiraCoordenadaBomb (x:xs) 0 )::Int), (read (segundaCoordenadaBomb (x:xs) 0)::Int) ),0,read (arranjaRaio1 (x:xs) 0)::Int  ,read (arranjaTempo1 (x:xs) 0 )) : listaBombas ys
+-- read (arranjaJogador1 (x:xs) 0)::Int
+
+{- | Arranja o jogador na linha da informação de bomba-}
+arranjaJogador1 :: String -> Int -> String
+arranjaJogador1 [] _ = [] 
+arranjaJogador1 (x:xs) contador = if x==' ' then arranjaJogador1 xs (contador+1) else 
+                                 if x/=' ' && contador == 3 then x:arranjaJogador1 xs (contador) else arranjaJogador1 xs contador
+
+{- | Arranja o raio na linha da informação de bomba-}
+arranjaRaio1 :: String -> Int -> String
+arranjaRaio1 [] _ = []
+arranjaRaio1 (x:xs) contador = if x==' ' then arranjaRaio1 xs (contador+1) else 
+                                   if x/=' ' && contador==4 then x:arranjaRaio1 xs (contador) else arranjaRaio1 xs contador 
+{- | Arranja o tempo na linha da informação de bomba-}
+arranjaTempo1 :: String -> Int -> String 
+arranjaTempo1 [] _ = []
+arranjaTempo1 (x:xs) contador = if x==' ' then arranjaTempo1 xs (contador+1) else 
+                                    if x/= ' ' && contador==5 then x:arranjaTempo1 xs contador else arranjaTempo1 xs contador
+
+
+
+{- | Vai descobrir a segunda coordenada duma string de bomba, por exemplo, 
+     segundaCoordenadasBomb "+ 3 5" 0 - devolve 5-}
+segundaCoordenadaBomb :: String -> Int -> String
+segundaCoordenadaBomb [] _ = []
+segundaCoordenadaBomb (x:xs) contador = if contador==0 && x/=' ' then segundaCoordenadaBomb xs contador else 
+                                        if contador==0 && x==' ' then segundaCoordenadaBomb xs (contador+1) else 
+                                        if contador ==2 && x/=' ' then x : segundaCoordenadaBomb xs (contador) else 
+                                        if contador/=0 && x==' ' then segundaCoordenadaBomb xs (contador+1) else segundaCoordenadaBomb xs (contador)
+
+
+{- | Vai descobrir a primeira coordenada duma string de bomba, por exemplo, 
+     primeiraCoordenadasBomb "+ 3 5" 0 - devolve 3-}
+primeiraCoordenadaBomb :: String -> Int -> String
+primeiraCoordenadaBomb [] _ = []
+primeiraCoordenadaBomb (x:xs) contador = if contador==0 && x/=' ' then primeiraCoordenadaBomb xs contador else 
+                                         if contador==0 && x==' ' then primeiraCoordenadaBomb xs (contador+1) else 
+                                         if contador ==1 && x/=' ' then x : primeiraCoordenadaBomb xs (contador) else 
+                                         if contador/=0 && x==' ' then primeiraCoordenadaBomb xs (contador+1) else primeiraCoordenadaBomb xs (contador)
+
+
+{- | Função retirada do Google com o objetivo de escolher um elemento aleatório da lista -}
+pick :: [a] -> IO a
+pick xs = fmap (xs !!) $ randomRIO (0, length xs - 1)
+
+
+
+{- | Percorre o estado de jogo e quando encontrar a respetiva linha do jogador devolve a posição atual do jogador -}
+posicaoJogadorX :: [String] -> Int -> (Int,Int)
+posicaoJogadorX ((x:xs):ys) j = if x==(intToDigit j) then parCoordenadasX (x:xs) else posicaoJogadorX ys j 
+
+
+{- | Converte a posição do jogador em forma de (col,lin)-}
+parCoordenadasX :: String -> (Int , Int)   
+parCoordenadasX lista =  (read (primeiraCoordenadaX (drop 2 lista)) :: Int, read (segundaCoordenadaX (drop 2 lista) 0)::Int)
+
+{- | Devolve a 1ª coordenada da string, neste caso a coluna. (Ex: primeiraCoordenada "2 3" -> 2)-}
+primeiraCoordenadaX :: String -> String
+primeiraCoordenadaX (x:xs) = if x==' ' then [] else x:primeiraCoordenadaX xs 
+
+{- | Devolve a 2ª coordenada da string, neste caso a linha. (Ex: segundaCoordenada "2 3" -> 3)-}
+segundaCoordenadaX :: String -> Int -> String
+segundaCoordenadaX [] _ = []
+segundaCoordenadaX (x:xs) contador = if contador==0 && x/=' ' then segundaCoordenadaX xs contador else 
+                                  if contador==0 && x==' ' then segundaCoordenadaX xs (contador+1) else 
+                                  if contador /=0 then x : segundaCoordenadaX xs (contador) else []

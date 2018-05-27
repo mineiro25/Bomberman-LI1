@@ -1,0 +1,244 @@
+module Tarefa5 where
+
+
+import Graphics.Gloss
+import Graphics.Gloss.Data.Picture
+import Graphics.Gloss.Data.Bitmap
+import Graphics.Gloss.Interface.Pure.Game
+import Data.Char
+import Tarefa1
+import Tarefa2
+import Tarefa3
+import Tarefa4
+import System.Environment
+
+-- | Uma representação do estado do jogo.
+type Estado = String
+
+-- | O estado inicial do jogo.
+estadoInicial :: Int -> Int -> Int ->Estado
+estadoInicial d s tempo = encode (mapa d s) ++ insereJogador d 	++ show tempo 
+
+-- | Função que desenha o jogo.
+desenhaEstado :: [Picture] -> [Picture] -> Estado -> Picture
+desenhaEstado l imagens s = Pictures (desenhaBomba  (desenhaAux l imagens s) (l!!3) 0 (converteDimensao(getDimensao s))  (listaBombas(converteLista(getBombasColocadas s (-1)))))
+
+ 
+desenhaAux :: [Picture]->[Picture]->Estado->[Picture]
+desenhaAux l imagens s = desenhaTijolo (desenhaAux1 l imagens s) (l!!0) 0  (converteDimensao(getDimensao s)) (listaPosicoes(converteLista(drop 2(arranjarPosicoes s))))
+
+{- | Função extra do desenhaEstado para facilitar leitura-}
+desenhaAux1 :: [Picture]->[Picture]->Estado->[Picture]
+desenhaAux1 l imagens s = (variosJogadores (desenhaMapa (l!!0) (l!!1) (converteDimensao(getDimensao s)) 0 ) imagens (converteDimensao(getDimensao s)) 0 [(posicaoJogadorX (decode s) 0 ), ((converteDimensao(getDimensao s))-2,(converteDimensao(getDimensao s))-2),(1,(converteDimensao(getDimensao s))-2),((converteDimensao(getDimensao s))-2,1 )    ])
+
+
+{- | Guarda a posição do jogador correspondente sob forma de (col,lin-}
+posicaoJogadorX :: [String] -> Int -> (Int,Int)
+posicaoJogadorX ((x:xs):ys) j = if x==(intToDigit j) then parCoordenadasX (x:xs) else posicaoJogadorX ys j 
+
+{- | Converte a posição para (col,lin)-}
+parCoordenadasX :: String -> (Int , Int)   
+parCoordenadasX lista =  (read (primeiraCoordenadaX (drop 2 lista)) :: Int, read (segundaCoordenadaX (drop 2 lista) 0)::Int)
+
+{- | Devolve a 1ª coordenada da string, neste caso a coluna. (Ex: primeiraCoordenada "2 3" -> 2)-}
+primeiraCoordenadaX :: String -> String
+primeiraCoordenadaX (x:xs) = if x==' ' then [] else x:primeiraCoordenadaX xs 
+
+{- | Devolve a 2ª coordenada da string, neste caso a linha. (Ex: segundaCoordenada "2 3" -> 3)-}
+segundaCoordenadaX :: String -> Int -> String
+segundaCoordenadaX [] _ = []
+segundaCoordenadaX (x:xs) contador = if contador==0 && x/=' ' then segundaCoordenadaX xs contador else 
+                                  if contador==0 && x==' ' then segundaCoordenadaX xs (contador+1) else 
+                                  if contador /=0 then x : segundaCoordenadaX xs (contador) else []
+ 
+
+
+{- | Função que altera o estado do jogo quando acontece um evento-}
+reageComando :: Event -> Estado -> Estado
+reageComando (EventKey (Graphics.Gloss.Interface.Pure.Game.Char 'w') _ _ _) s   = (encode (move (decode s) 0 'U'))
+reageComando (EventKey (Graphics.Gloss.Interface.Pure.Game.Char 'a') _ _ _) s   = (encode (move (decode s) 0 'L'))
+reageComando (EventKey (Graphics.Gloss.Interface.Pure.Game.Char 's') _ _ _) s   = (encode (move (decode s) 0 'D'))
+reageComando (EventKey (Graphics.Gloss.Interface.Pure.Game.Char 'd') _ _ _) s   = (encode (move (decode s) 0 'R'))
+reageComando (EventKey (Graphics.Gloss.Interface.Pure.Game.Char 'c') _ _ _) s   = (encode (move (decode s) 0 'B'))
+reageComando (EventKey (SpecialKey KeyUp) _ _ _) s   = (encode (move (decode s) 1 'U'))
+reageComando (EventKey (SpecialKey KeyDown) _ _ _) s   = (encode (move (decode s) 1 'D'))
+reageComando (EventKey (SpecialKey KeyLeft) _ _ _) s   = (encode (move (decode s) 1 'L'))
+reageComando (EventKey (SpecialKey KeyRight) _ _ _) s   = (encode (move (decode s) 1 'R'))
+reageComando (EventKey (Graphics.Gloss.Interface.Pure.Game.Char 'm') _ _ _) s   = (encode (move (decode s) 1 'B'))
+reageComando  _ s = s
+
+
+-- | Insere 4 jogadores no estado de jogo
+insereJogador :: Int -> Estado
+insereJogador dimensao = "P 0 1 1" ++ "/" ++ "P 1 " ++ show (dimensao-2) ++ " " ++ "1" ++ "/" ++ "P 2 1 " ++ show (dimensao-2) ++ "/" ++ "P 3 " ++ show (dimensao-2) ++ " " ++ show (dimensao-2)
+
+
+
+-- | Função que altera o estado do jogo quando o tempo avança @n@ segundos.
+reageTempo :: Float -> Estado -> Estado
+reageTempo f s = encode (avanca (decode s) (f-1) )
+
+-- | Frame rate1
+fr :: Int
+fr = 3
+
+-- | Display mode
+dm :: Display
+dm = InWindow "Bomberman 2016" (800, 600) (0, 0)
+   
+
+------------------------------------------------------------------------------------------------------------------------------ Desenha o mapa e os tijolos 
+{- | Desenha uma linha inteira só imagem -}
+desenhaLinha :: Picture -> Int -> Int -> Int -> [Picture]
+desenhaLinha p0 dim x y = if x>=dim then [] else (colocaImg dim x y (redimensionar p0 dim)):desenhaLinha p0 dim (x+1) y 
+
+{- | Desenha a imagem no primeiro e ultima posição-}
+desenhaLinha1 :: Picture -> Picture -> Int -> Int -> Int -> [Picture]
+desenhaLinha1 p0 p1 dim x y = if x>=dim then [] else 
+	                       if (x==0) || (x==(dim-1)) then (colocaImg dim x y (redimensionar p0 dim)):desenhaLinha1 p0 p1 dim (x+1) y else (colocaImg dim x y (redimensionar p1 dim)):desenhaLinha1 p0 p1 dim (x+1) y 
+
+{- | Desenha as imagens nas posições pares-}
+desenhaLinha2 :: Picture -> Picture -> Int -> Int -> Int -> [Picture]
+desenhaLinha2 p0 p1 dim x y = if x>=dim then [] else 
+	                          if even x then (colocaImg dim x y (redimensionar p0 dim)):desenhaLinha2 p0 p1 dim (x+1) y else (colocaImg dim x y (redimensionar p1 dim)):desenhaLinha2 p0 p1 dim (x+1) y 
+
+{- | Chama as 3 funções, desenhaLinha, desenhaLinha1, desenhaLinha2 e desenha o tabuleiro-}
+desenhaMapa :: Picture -> Picture -> Int -> Int -> [Picture]
+desenhaMapa p0 p1 dim y | y>= dim = []
+                        | y==0 || y==(dim-1) = (desenhaLinha p0 dim 0 y)++desenhaMapa p0 p1 dim (y+1)
+                        | (odd y) = (desenhaLinha1 p0 p1 dim 0 y)++desenhaMapa p0 p1 dim (y+1)
+                        | otherwise = (desenhaLinha2 p0 p1 dim 0 y)++desenhaMapa p0 p1 dim (y+1)
+
+
+{- | Desenha os tijolos nas posições onde estão os '?' -}
+desenhaTijolo :: [Picture] -> Picture -> Int -> Int -> [(Int,Int)]-> [Picture]
+desenhaTijolo _ _ _ _ [] = []
+desenhaTijolo imagens p0 linha dimensao ((col,lin):xs)= if linha>=(dimensao) then [] else 
+													  if lin<linha then desenhaTijolo imagens p0 linha dimensao xs else 
+	                                                  if linha/=lin then  (guardaImagens imagens 0 dimensao)++desenhaTijolo (apagaImagens imagens dimensao) p0 (linha+1) dimensao ((col,lin):xs) else 
+	                                                  if linha==lin then (desenhaTijoloImagem imagens p0 0 linha dimensao ((col,lin):xs))++desenhaTijolo (apagaImagens imagens dimensao) p0 (linha+1) dimensao xs else []
+	                                                  
+
+{-| Função auxiliar para desenhaTijolo -}
+desenhaTijoloImagem :: [Picture] -> Picture -> Int -> Int -> Int -> [(Int,Int)] -> [Picture]
+desenhaTijoloImagem jogo _ _ _ dimensao [] = jogo
+desenhaTijoloImagem (x:xs) p0 coluna linha dim ((col,lin):t) = if coluna >= dim then [] else 
+	                                              
+    												    if coluna==col && linha==lin then (colocaImg dim col lin (redimensionar p0 dim)):desenhaTijoloImagem xs p0 (coluna+1) linha dim t else 
+    												    if coluna/=col then [x]++desenhaTijoloImagem xs p0 (coluna+1) linha dim ((col,lin):t) else
+    												    if linha/=lin then [x]++desenhaTijoloImagem xs p0 (coluna+1) linha dim ((col,lin):t)else  (x:xs)
+
+{- | Desenha todas as bombas colocadas no estado de jogo-}
+desenhaBomba :: [Picture] -> Picture -> Int -> Int -> [((Int,Int),Int,Int,Int)]-> [Picture]
+desenhaBomba jogo _ _ _ [] = jogo
+desenhaBomba imagens p linha dimensao (((col,lin),j,r,t):xs)= if linha>=(dimensao) then [] else 
+													  if lin<linha then desenhaBomba imagens p linha dimensao xs else 
+	                                                  if linha/=lin then  (guardaImagens imagens 0 dimensao)++desenhaBomba (apagaImagens imagens dimensao) p (linha+1) dimensao (((col,lin),j,r,t):xs) else 
+	                                                  if linha==lin then (desenhaBombaImagem imagens p 0 linha dimensao (((col,lin),j,r,t):xs))++desenhaBomba (apagaImagens imagens dimensao) p (linha+1) dimensao xs else []
+	                                                  
+
+{- | Desenha todas as bombas colocadas numa linha-}
+desenhaBombaImagem :: [Picture] -> Picture -> Int -> Int -> Int -> [((Int,Int),Int,Int,Int)] -> [Picture]
+desenhaBombaImagem jogo _ _ _ dimensao [] = jogo
+desenhaBombaImagem (x:xs) p coluna linha dim (((col,lin),j,r,t):hs) = if coluna >= dim then [] else 
+	                                              
+    												    if coluna==col && linha==lin then (colocaImg dim col lin (redimensionar p dim)):desenhaBombaImagem xs p (coluna+1) linha dim hs else 
+    												    if coluna/=col then [x]++desenhaBombaImagem xs p (coluna+1) linha dim (((col,lin),j,r,t):hs) else
+    												    if linha/=lin then [x]++desenhaBombaImagem xs p (coluna+1) linha dim (((col,lin),j,r,t):hs) else  (x:xs)
+
+
+------------------------------------------------------------------------------------------------------------------------------ Desenha os jogadores  
+
+{- | Desenha todas os jogadores existentes no estado de jogo-}
+variosJogadores :: [Picture] -> [Picture] -> Int -> Int -> [(Int,Int)] -> [Picture]
+variosJogadores lista _ _ _ [] = lista
+variosJogadores lista (p:ps) dim y ((col,lin):xs) = variosJogadores (desenhaJogadores lista p dim 0 (col,lin)) ps dim 0 xs
+
+{- | Função auxiliar para variosJogadores -}
+desenhaJogadores :: [Picture] -> Picture -> Int -> Int -> (Int,Int) -> [Picture] 
+desenhaJogadores lista p dim y (col,lin) = if y < lin then (guardaImagens lista 0 dim)++desenhaJogadores (apagaImagens lista dim) p dim (y+1) (col,lin) else 
+	                                       if y==lin then (desenhaJogImagem lista p 0 dim (col,lin)) {- ++(apagaImagens lista dim)-} else []
+
+{- | Desenha todos os jogadores presentes numa linha-}
+desenhaJogImagem :: [Picture] -> Picture -> Int -> Int -> (Int,Int) -> [Picture]
+desenhaJogImagem [] _ _ _ _ = []
+desenhaJogImagem (x:xs) p y dim (col,lin) = if y>=dim then [] else 
+	                                        if y==col then (colocaImg dim col lin (redimensionar p dim)):xs else 
+	                                        if y/=col then x:desenhaJogImagem xs p (y+1) dim (col,lin) else []
+{- | Apaga as imagens da lista de imagens -}
+apagaImagens :: [Picture] -> Int -> [Picture]
+apagaImagens l 0 = l 
+apagaImagens (x:xs) y = apagaImagens xs (y-1)
+
+{- | Guarda imagens da lista de imagens -}
+guardaImagens :: [Picture] -> Int -> Int -> [Picture]
+guardaImagens [] _ _ = []
+guardaImagens (x:xs) y dim = if y>=dim then [] else x:guardaImagens xs (y+1) dim
+
+
+------	--------------------------------------------------------------------------------------------------------------------------
+-- Funções auxiliar para meter as imagens direitas
+
+
+{- | Redimensiona as imagens-}
+redimensionar :: Picture -> Int -> Picture
+redimensionar pict dim = Scale (adaptarImagem dim) (adaptarImagem dim) pict
+
+{- | Modifica o lado das imagens -}
+tamanhoLado :: Int -> Float
+tamanhoLado d = (600/((fromIntegral d)))
+
+{- | Adapta a imagem ao ecran-}
+adaptarImagem :: Int -> Float 
+adaptarImagem d = (tamanhoLado d)/150
+
+{- | Coloca a imagem-}
+colocaImg :: Int -> Int -> Int -> Picture -> Picture
+colocaImg d x y p = Translate (-400 + (tamanhoLado d)/2 + (fromIntegral x)*dim) (300 - (tamanhoLado d)/2 - (fromIntegral y)*dim) p
+               where dim = tamanhoLado d
+
+------------------------------------- Funções extras
+listaBombas :: [String] -> [((Int,Int),Int,Int,Int)]
+listaBombas [] = []
+listaBombas ((x:xs):ys) = (((read (primeiraCoordenadaBomb (x:xs) 0 )::Int), (read (segundaCoordenadaBomb (x:xs) 0)::Int) ),0,read (arranjaRaio1 (x:xs) 0)::Int  ,read (arranjaTempo1 (x:xs) 0 )) : listaBombas ys
+-- read (arranjaJogador1 (x:xs) 0)::Int
+
+arranjaJogador1 :: String -> Int -> String
+arranjaJogador1 [] _ = [] 
+arranjaJogador1 (x:xs) contador = if x==' ' then arranjaJogador1 xs (contador+1) else 
+                                 if x/=' ' && contador == 3 then x:arranjaJogador1 xs (contador) else arranjaJogador1 xs contador
+arranjaRaio1 :: String -> Int -> String
+arranjaRaio1 [] _ = []
+arranjaRaio1 (x:xs) contador = if x==' ' then arranjaRaio1 xs (contador+1) else 
+	                           if x/=' ' && contador==4 then x:arranjaRaio1 xs (contador) else arranjaRaio1 xs contador 
+
+arranjaTempo1 :: String -> Int -> String 
+arranjaTempo1 [] _ = []
+arranjaTempo1 (x:xs) contador = if x==' ' then arranjaTempo1 xs (contador+1) else 
+	                            if x/= ' ' && contador==5 then x:arranjaTempo1 xs contador else arranjaTempo1 xs contador
+-- | Função principal que invoca o jogo.
+main :: IO ()	
+main =  do list <- getArgs
+   
+           let dim = read (list !! 0) :: Int
+           let s = read (list !! 1) :: Int
+           let tempo = read (list !! 2) :: Int
+
+           p0 <- loadBMP "rocks.bmp" 
+           p1 <- loadBMP "white.bmp"
+           p2 <- loadBMP "homer.bmp"
+           p3 <- loadBMP "crates.bmp"
+           p4 <- loadBMP "bomba.bmp"
+           homer <- loadBMP "homer.bmp"
+           lisa <- loadBMP "lisa.bmp"
+           marge <- loadBMP "marge.bmp"
+           bart <- loadBMP "bart.bmp"
+           let lista = [p3,p1,p2,p4]
+           let imagens = [homer,marge,lisa,bart]
+           play dm              -- display mode
+                (greyN 0.5)     -- côr do fundo da janela
+                fr              -- frame rate
+                (estadoInicial dim s tempo) -- estado inicial
+                (desenhaEstado lista imagens)   -- desenha o estado do jogo
+                reageComando     -- reage a um evento
+                reageTempo      -- reage ao passar do tempo

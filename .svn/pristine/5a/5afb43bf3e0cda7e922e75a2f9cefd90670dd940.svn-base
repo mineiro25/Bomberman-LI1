@@ -1,0 +1,114 @@
+module Main where
+
+
+import Graphics.Gloss
+import Graphics.Gloss.Data.Picture
+import Graphics.Gloss.Data.Bitmap
+import Graphics.Gloss.Interface.Pure.Game
+import Data.Char
+import Tarefa1
+import System.Environment
+
+-- | Uma representação do estado do jogo.
+type Estado = String
+
+-- | O estado inicial do jogo.
+estadoInicial :: Estado
+estadoInicial = []
+
+-- | Função que desenha o jogo.
+desenhaEstado :: Picture -> Picture -> Picture -> Estado -> Picture
+desenhaEstado p p1 p2 s = Pictures (desenhaJogadores (desenhaMapa p p1 9 0 ) p2 9 0 (7,1))
+
+-- | Função que altera o estado do jogo quando acontece um evento.
+reageEvento :: Event -> Estado -> Estado
+reageEvento e s = []
+
+-- | Função que altera o estado do jogo quando o tempo avança @n@ segundos.
+reageTempo :: Float -> Estado -> Estado
+reageTempo f s = []
+
+-- | Frame rate1
+fr :: Int
+fr = 50
+
+-- | Display mode
+dm :: Display
+dm = InWindow "Bomberman 2016" (800, 600) (0, 0)
+   
+
+pedra :: Picture -> Int -> [Picture]
+pedra p 0 = []
+pedra p x = (colocaImg 9 0 8 (redimensionar p 9)) :pedra p (x-1)
+
+
+
+------------------------------------------------------------------------------------------------------------------------------ Desenha o mapa 
+desenhaLinha :: Picture -> Int -> Int -> Int -> [Picture]
+desenhaLinha p0 dim x y = if x>=dim then [] else (colocaImg dim x y (redimensionar p0 dim)):desenhaLinha p0 dim (x+1) y 
+
+
+desenhaLinha1 :: Picture -> Picture -> Int -> Int -> Int -> [Picture]
+desenhaLinha1 p0 p1 dim x y = if x>=dim then [] else 
+	                       if (x==0) || (x==(dim-1)) then (colocaImg dim x y (redimensionar p0 dim)):desenhaLinha1 p0 p1 dim (x+1) y else (colocaImg dim x y (redimensionar p1 dim)):desenhaLinha1 p0 p1 dim (x+1) y 
+
+desenhaLinha2 :: Picture -> Picture -> Int -> Int -> Int -> [Picture]
+desenhaLinha2 p0 p1 dim x y = if x>=dim then [] else 
+	                          if even x then (colocaImg dim x y (redimensionar p0 dim)):desenhaLinha2 p0 p1 dim (x+1) y else (colocaImg dim x y (redimensionar p1 dim)):desenhaLinha2 p0 p1 dim (x+1) y 
+
+
+desenhaMapa :: Picture -> Picture -> Int -> Int -> [Picture]
+desenhaMapa p0 p1 dim y | y>= dim = []
+                        | y==0 || y==(dim-1) = (desenhaLinha p0 dim 0 y)++desenhaMapa p0 p1 dim (y+1)
+                        | (odd y) = (desenhaLinha1 p0 p1 dim 0 y)++desenhaMapa p0 p1 dim (y+1)
+                        | otherwise = (desenhaLinha2 p0 p1 dim 0 y)++desenhaMapa p0 p1 dim (y+1)
+
+------------------------------------------------------------------------------------------------------------------------------ Desenha os jogadores  
+desenhaJogadores :: [Picture] -> Picture -> Int -> Int -> (Int,Int) -> [Picture] 
+desenhaJogadores lista p dim y (col,lin) = if y /= lin then (guardaImagens lista 0 dim)++desenhaJogadores (apagaImagens lista dim) p dim (y+1) (col,lin) else 
+	                                       if y==lin then (desenhaJogImagem lista p 0 dim (col,lin))++(apagaImagens lista dim) else []
+
+
+desenhaJogImagem :: [Picture] -> Picture -> Int -> Int -> (Int,Int) -> [Picture]
+desenhaJogImagem [] _ _ _ _ = []
+desenhaJogImagem (x:xs) p y dim (col,lin) = if y>=dim then [] else 
+	                                        if y==col then p:xs else 
+	                                        if y/=col then x:desenhaJogImagem xs p (y+1) dim (col,lin) else []
+
+apagaImagens :: [Picture] -> Int -> [Picture]
+apagaImagens l 0 = l 
+apagaImagens (x:xs) y = apagaImagens xs (y-1)
+
+guardaImagens :: [Picture] -> Int -> Int -> [Picture]
+guardaImagens [] _ _ = []
+guardaImagens (x:xs) y dim = if y>=dim then [] else x:guardaImagens xs (y+1) dim
+
+--------------------------------------------------------------------------------------------------------------------------------
+-- Funções auxiliar para meter as imagens direitas
+redimensionar :: Picture -> Int -> Picture
+redimensionar pict dim = Scale (adaptarImagem dim) (adaptarImagem dim) pict
+
+tamanhoLado :: Int -> Float
+tamanhoLado d = (600/((fromIntegral d)))
+
+adaptarImagem :: Int -> Float 
+adaptarImagem d = (tamanhoLado d)/150
+
+
+colocaImg :: Int -> Int -> Int -> Picture -> Picture
+colocaImg d x y p = Translate (-400 + (tamanhoLado d)/2 + (fromIntegral x)*dim) (300 - (tamanhoLado d)/2 - (fromIntegral y)*dim) p
+               where dim = tamanhoLado d
+
+
+-- | Função principal que invoca o jogo.
+main :: IO ()	
+main =  do p0 <- loadBMP "rocks.bmp" 
+           p1 <- loadBMP "white.bmp"
+           p2 <- loadBMP "homer.bmp"
+           play dm              -- display mode
+                (greyN 0.5)     -- côr do fundo da janela
+                fr              -- frame rate
+                estadoInicial   -- estado inicial
+                (desenhaEstado p0 p1 p2 )   -- desenha o estado do jogo
+                reageEvento     -- reage a um evento
+                reageTempo      -- reage ao passar do tempo

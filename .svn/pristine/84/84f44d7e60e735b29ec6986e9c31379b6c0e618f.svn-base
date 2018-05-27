@@ -1,0 +1,182 @@
+module Main where
+
+import System.Environment
+import Text.Read
+import Data.Maybe
+import System.Random 
+import Data.Char
+
+
+{-|
+Module : Main
+Description : Tarefa1.hs - Projeto
+Copyright : Carlos Gomes (A77185)
+			Nuno Silva (A78156)
+
+-}
+
+-- | ’mapa’: Função Original de todas as funções, é a aquela que vai devolver o mapa, inclusivé os estados. 
+mapa :: Int -> Int -> [String]
+mapa a b = (apagaTracosMapa (desenhaPontosMapa 0 a (coordsBombFlares a b ) (mapaOriginal 0 a)))++ desenhaBombMap 0 0 a (coordsBombFlares a b) (desenhaPontosMapa 0 a (coordsBombFlares a b ) (mapaOriginal 0 a)) ++ desenhaFlameMap 0 0 a (coordsBombFlares a b) (desenhaPontosMapa 0 a (coordsBombFlares a b ) (mapaOriginal 0 a))
+
+  
+-- Desenha todos os '#'
+desenhaTodos :: Int-> Int-> String
+desenhaTodos a b = if a<0 then [] else 
+				   if a==b then [] else '#':desenhaTodos (a+1) b
+
+-- Desenha o 1º e ultimo '#'-++
+desenhaInicFim :: Int -> Int -> String 
+desenhaInicFim a b = if a<0 then [] else 
+					 if a>=b then [] else 	
+					 if a==0 || a==(b-1) then '#':desenhaInicFim (a+1) b else ' ':desenhaInicFim (a+1) b
+
+-- Desenha o 1º e ultimo '#' + vazio
+desenhaInicFim1 :: Int -> Int -> String 
+desenhaInicFim1 a b = if a<0 then [] else 
+					 if a>=b then [] else 
+					 if a==0 || a==(b-1) then '#':desenhaInicFim1 (a+1) b else if a==1 || a==2 || a==(b-2) || a==(b-3) then '_':desenhaInicFim1 (a+1) b else ' ':desenhaInicFim1 (a+1) b
+
+-- Desenha os '#' nas posições pares
+desenhaPosPares :: Int -> Int -> String
+desenhaPosPares a b = if a<0 then [] else
+					  if a>=b then [] else 
+					  if even a then '#':desenhaPosPares (a+1) b else ' ':desenhaPosPares (a+1) b 
+
+desenhaPosPares1 :: Int -> Int -> String 
+desenhaPosPares1 a b = if a<0 then [] else
+					   if a>=b then [] else
+					   if a==1 || a==(b-2) then '_':desenhaPosPares1 (a+1) b else 
+					   if even a then '#':desenhaPosPares1 (a+1) b else ' ':desenhaPosPares1 (a+1) b 
+
+-- Desenhar o mapa só com #
+mapaOriginal :: Int -> Int -> [String]
+mapaOriginal a b = if a<0 then [] else 
+				   if a>=b then [] else 
+				   if (a==0) || a==(b-1) then (desenhaTodos 0 b):mapaOriginal (a+1) b else 
+				   if (a==1) || a==(b-2) then desenhaInicFim1 0 b : mapaOriginal (a+1) b else
+			 	   if (a==2) || a==(b-3) then desenhaPosPares1 0 b: mapaOriginal (a+1) b else 	 
+				   if odd a then (desenhaInicFim 0 b):mapaOriginal (a+1) b else 
+				   if even a then (desenhaPosPares 0 b):mapaOriginal (a+1) b else []
+
+-- Desenhar os "?" numa linha
+desenhaPontos :: [Int] -> String -> String
+desenhaPontos [] [] = []
+desenhaPontos [] l = l 
+desenhaPontos _ [] = []
+desenhaPontos (x:xs) (y:ys) = if (x==0 || x==1 || x==2 || x==3 || x>=4 && x<=39) && y==' ' then '?':desenhaPontos xs ys  else 
+							  if (x>=40 && x<=99) && y/='#' && y/='_' then ' ':desenhaPontos xs ys else  y:desenhaPontos (x:xs) ys
+
+-- Desenha os "?" no mapa
+desenhaPontosMapa :: Int -> Int -> [Int] -> [String] -> [String]
+desenhaPontosMapa _ _ [] [] = []
+desenhaPontosMapa _ _ _ [] = []
+desenhaPontosMapa a b lista (y:ys) = if a>=b then [] else  desenhaPontos lista y : desenhaPontosMapa (a+1) b (drop (contaEspacos y) lista) ys 
+
+
+{- 
+0-1 - Power Ups Bombs escondidos atrás de um tijolo;
+2-3 - Power Ups Flames escondidos atrás de um tijolo;
+4-39 - Tijolo
+40-99 - Vazio
+-}
+coordsBombFlares :: Int -> Int -> [Int]
+coordsBombFlares x y = take (contaEspacosMapa(mapaOriginal 0 x)) $ randomRs (0,99) (mkStdGen y)
+
+
+-- Contar espaços livres Numa linha
+contaEspacos :: String -> Int
+contaEspacos [] = 0
+contaEspacos (x:xs) = if x==' ' then 1+contaEspacos xs else contaEspacos xs
+
+
+-- Contar todos os espaços livres no mapa 
+contaEspacosMapa :: [String] -> Int 
+contaEspacosMapa [] = 0
+contaEspacosMapa (x:xs) = contaEspacos x + contaEspacosMapa xs
+
+-- Apagar os traços 
+apaga :: String -> String 
+apaga [] = []
+apaga (x:xs) = if x=='_' then ' ':apaga xs else x:apaga xs 
+
+-- Apagar os traços no mapa
+apagaTracosMapa :: [String] -> [String]
+apagaTracosMapa [] = []
+apagaTracosMapa (x:xs) = (apaga x):apagaTracosMapa xs 
+ 
+-- Determina a posicao das flames numa linha
+detetaFlames :: Num a => Int -> Int -> Int ->  String  -> String
+detetaFlames a b x (y:ys) =  if (a>=b) then [] else 
+					 		 if (x/=2) && (x/=3) then [] else 
+							 if (x==2 || x==3) && y=='?' then show a else detetaFlames (a+1) b x ys 
+
+detetaBombs :: Num a => Int -> Int -> [Int] ->  String  -> [String]
+detetaBombs _ _ [] [] = []
+detetaBombs _ _ [] x = []
+detetaBombs a b x [] = []
+detetaBombs a b (x:xs) (y:ys) =  if (a>=b) then [] else 
+	                             if (a==0) || (a==b-1) then detetaBombs (a+1) b (x:xs) ys else 
+                                 if (x==0 || x==1) && y=='?' then show a:detetaBombs (a+1) b xs ys else 
+                            --     if (x==0 || x==1) && y=='?' then detetaBombs (a+1) b xs ys else 
+                                 if (x>=4 && x<=99) && (y==' ' || y=='?') then detetaBombs (a+1) b xs ys else detetaBombs (a+1) b (x:xs) ys 
+                                 
+
+desenhaFraseBombs :: Int -> Int -> Int -> [String]->  [String]
+desenhaFraseBombs _ _ _ [] = [] 
+desenhaFraseBombs a b x (y:ys) = if a>=b then [] else ("+" ++ " " ++ y ++ " " ++show x):desenhaFraseBombs (a+1) b x ys 
+-- x é a posicção
+-- a posicao 0
+-- b posicao 9
+
+
+                 
+
+desenhaBombMap :: Int -> Int -> Int -> [Int]-> [String] -> [String]
+desenhaBombMap _ _ _ [] [] = []
+desenhaBombMap _ _ _ a [] = [] 
+desenhaBombMap _ _ _ [] a = []
+desenhaBombMap x y z (a:b) ((h:t):c) = if x>= z then [] else
+	                                   if y>=(z-1) then desenhaBombMap (x+1) 0 z (a:b) c else 
+	                                   if x==0 || x==(z-1) then desenhaBombMap (x+1) 0 z (a:b) c else
+	                                   if y==0 then desenhaBombMap x (y+1) z (a:b) (t:c) else 
+
+	                                   if h=='_' || h=='#' then desenhaBombMap x (y+1) z (a:b) (t:c) else 
+	                                   if (a==0) || (a==1) && h=='?' then ("+" ++ " " ++ show y ++ " " ++ show x): desenhaBombMap x (y+1) z b (t:c) else 
+	                                  -- if (a>=2 && a<=3) && (h=='?') then ("!" ++ " " ++ show y ++ " " ++ show x): desenhaBombMap x (y+1) z b (t:c) else  
+	                                   if (a>=2 && a<=99) && (h==' ' ||h=='?') then desenhaBombMap x (y+1) z b (t:c) else []
+
+desenhaFlameMap :: Int -> Int -> Int -> [Int]-> [String] -> [String]
+desenhaFlameMap _ _ _ [] [] = []
+desenhaFlameMap _ _ _ a [] = [] 
+desenhaFlameMap _ _ _ [] a = []
+desenhaFlameMap x y z (a:b) ((h:t):c) = if x>= z then [] else
+	                                    if y>=(z-1) then desenhaFlameMap (x+1) 0 z (a:b) c else 
+	                                    if x==0 || x==(z-1) then desenhaFlameMap (x+1) 0 z (a:b) c else
+	                                    if y==0 then desenhaFlameMap x (y+1) z (a:b) (t:c) else 
+
+	                                    if h=='_' || h=='#' then desenhaFlameMap x (y+1) z (a:b) (t:c) else 
+ 	                                 --   if (a==0) || (a==1) && h=='?' then ("+" ++ " " ++ show y ++ " " ++ show x): desenhaBombMap x (y+1) z b (t:c) else 
+	                                    if (a>=2 && a<=3) && (h=='?') then ("!" ++ " " ++ show y ++ " " ++ show x): desenhaFlameMap x (y+1) z b (t:c) else  
+	                                    if (a==0 || a==1 || (a>=4 && a<=99)) && (h==' ' ||h=='?') then desenhaFlameMap x (y+1) z b (t:c) else []
+
+
+
+
+
+
+
+contaLinha :: String -> Int 
+contaLinha [] = 0 
+contaLinha (x:xs) = if x== ' ' || x=='?' then 1+contaLinha xs else contaLinha xs 
+
+
+
+-- | ’main’: função de testes, ao darmos uma dimensão e semente, a função origina o mapa resultante.
+main :: IO ()
+main = do a <- getArgs
+          let s = readMaybe (a !! 0)
+          let l = readMaybe (a !! 1)
+          if length a == 2 && isJust s && isJust l && fromJust s >= 5 && odd (fromJust s)
+             then putStr $ unlines $ mapa (fromJust s) (fromJust l)
+             else putStrLn "Parâmetros inválidos"

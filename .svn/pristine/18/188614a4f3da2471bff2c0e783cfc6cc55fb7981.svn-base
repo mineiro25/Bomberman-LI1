@@ -1,0 +1,324 @@
+{-|
+Module : Main
+Description : Tarefa1.hs - Projeto
+Copyright : Carlos Gomes (A77185)
+      Nuno Silva (A78156)
+
+-}
+module Tarefa2 where
+
+import Data.Char (isDigit)
+import System.Environment
+import Data.Char 
+import Data.List
+import Data.Char
+
+
+
+{- | A função move vai receber o mapa, o jogador e o comando e vai verificar se o comando é válido e se o jogador existe. -}
+move :: [String] -> Int -> Char -> [String]
+move mapa a b  = if verificaJogadorEst a mapa then
+
+
+      if (b=='L') then if verificaMapaEsquerda 0 0 (parCoordenadas (arranjaCoordenadas a mapa) a) mapa then 
+      if verificaPower (parCoordenadas (arranjaCoordenadas a (moveEsquerda mapa a (parCoordenadas (arranjaCoordenadas a mapa) a))) a) (listaPowerDireita mapa) == True then 
+        apagaPower (adicionaPower (moveEsquerda mapa a (parCoordenadas (arranjaCoordenadas a mapa) a)) a) (converCoordsString (parCoordenadas (arranjaCoordenadas a (moveEsquerda mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) )) a  ))
+         else moveEsquerda mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) else mapa
+
+      
+                     else if (b=='R') then if verificaMapaDireita 0 0 (parCoordenadas (arranjaCoordenadas a mapa) a) mapa then 
+      if verificaPower (parCoordenadas (arranjaCoordenadas a (moveDireita mapa a (parCoordenadas (arranjaCoordenadas a mapa) a))) a) (listaPowerDireita mapa) == True then 
+        apagaPower (adicionaPower (moveDireita mapa a (parCoordenadas (arranjaCoordenadas a mapa) a)) a) (converCoordsString (parCoordenadas (arranjaCoordenadas a (moveDireita mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) )) a  ))
+         else moveDireita mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) else mapa
+
+                     else if (b=='U') then if verificaMapaCima 0 0 (parCoordenadas (arranjaCoordenadas a mapa) a) mapa then 
+      if verificaPower (parCoordenadas (arranjaCoordenadas a (moveCima mapa a (parCoordenadas (arranjaCoordenadas a mapa) a))) a) (listaPowerDireita mapa) == True then 
+        apagaPower (adicionaPower (moveCima mapa a (parCoordenadas (arranjaCoordenadas a mapa) a)) a) (converCoordsString (parCoordenadas (arranjaCoordenadas a (moveCima mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) )) a  ))
+         else moveCima mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) else mapa
+
+
+                     else if (b=='D') then if verificaMapaBaixo 0 0 (parCoordenadas (arranjaCoordenadas a mapa) a) mapa then 
+      if verificaPower (parCoordenadas (arranjaCoordenadas a (moveBaixo mapa a (parCoordenadas (arranjaCoordenadas a mapa) a))) a) (listaPowerDireita mapa) == True then 
+        apagaPower (adicionaPower (moveBaixo mapa a (parCoordenadas (arranjaCoordenadas a mapa) a)) a) (converCoordsString (parCoordenadas (arranjaCoordenadas a (moveBaixo mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) )) a  ))
+         else moveBaixo mapa a (parCoordenadas (arranjaCoordenadas a mapa) a) else mapa
+
+
+
+
+                     else if (b=='B') then if verificaJogador a (arranjaJogador (bombasColocadas mapa) 0) == True then mapa else adicionaBomba a 1 (parCoordenadas(arranjaCoordenadas a mapa) a) mapa   
+                                     else mapa 
+                      else mapa 
+
+
+{- | Quando o jogador usa o comando 'B' vai adicionar uma bomba ao estado -}
+adicionaBomba :: Int -> Int -> (Int,Int) -> [String] -> [String]
+adicionaBomba _ _ _ [] = []
+adicionaBomba j r (x,y) ((h:t):c) = if (h==(intToDigit 0)) || (h==(intToDigit 1)) || (h==(intToDigit 2)) || (h==(intToDigit 3) )
+  then ("*" ++ " " ++ show x ++ " " ++ show y ++ " " ++ show j ++ " " ++ show r ++" "++  "10" ) : ((h:t):c) else 
+     if h=='*' then if y < read (segundaCoordenadaBomb (h:t) 0) || (y== read (segundaCoordenadaBomb (h:t) 0) ) && (x< read (primeiraCoordenadaBomb (h:t) 0)) then  ("*" ++ " " ++ show x ++ " " ++ show y ++ " " ++ show j ++ " " ++ show r ++" "++  "10" ) : ((h:t):c)
+      else (h:t):adicionaBomba j r (x,y) c 
+      else (h:t):adicionaBomba j r (x,y) c
+
+       
+
+
+
+
+
+
+
+{- | Vai descobrir a segunda coordenada duma string de bomba, por exemplo, 
+     segundaCoordenadasBomb "+ 3 5" 0 - devolve 5-}
+segundaCoordenadaBomb :: String -> Int -> String
+segundaCoordenadaBomb [] _ = []
+segundaCoordenadaBomb (x:xs) contador = if contador==0 && x/=' ' then segundaCoordenadaBomb xs contador else 
+                                        if contador==0 && x==' ' then segundaCoordenadaBomb xs (contador+1) else 
+                                        if contador ==2 && x/=' ' then x : segundaCoordenadaBomb xs (contador) else 
+                                        if contador/=0 && x==' ' then segundaCoordenadaBomb xs (contador+1) else segundaCoordenadaBomb xs (contador)
+
+
+{- | Vai descobrir a primeira coordenada duma string de bomba, por exemplo, 
+     primeiraCoordenadasBomb "+ 3 5" 0 - devolve 3-}
+primeiraCoordenadaBomb :: String -> Int -> String
+primeiraCoordenadaBomb [] _ = []
+primeiraCoordenadaBomb (x:xs) contador = if contador==0 && x/=' ' then primeiraCoordenadaBomb xs contador else 
+                                         if contador==0 && x==' ' then primeiraCoordenadaBomb xs (contador+1) else 
+                                         if contador ==1 && x/=' ' then x : primeiraCoordenadaBomb xs (contador) else 
+                                         if contador/=0 && x==' ' then primeiraCoordenadaBomb xs (contador+1) else primeiraCoordenadaBomb xs (contador)
+
+
+
+
+
+
+
+
+
+{- | Altera a posicao do jogador no estado do jogo quando move para esquerda -}
+moveEsquerda :: [String] -> Int -> (Int,Int) -> [String]
+moveEsquerda [] _ _ = []
+moveEsquerda ((h:t):c) j (x,y) = if h==(intToDigit j) then if (contaPowers (h:t))==0 then (converteString j (x-1,y)):moveEsquerda c j (x,y) 
+                                                           else ((converteString j (x-1,y)) ++ " " ++ desenhaPowers (contaPowers (h:t)) []):moveEsquerda c j (x,y)
+                                 else (h:t):moveEsquerda c j (x,y)
+
+
+
+
+{- | Altera a posicao do jogador no estado do jogo quando move para direita -}
+moveDireita :: [String] -> Int -> (Int,Int) -> [String]
+moveDireita [] _ _ = []
+moveDireita ((h:t):c) j (x,y) = if h==(intToDigit j) then if (contaPowers (h:t))==0 then (converteString j (x+1,y)):moveDireita c j (x,y) 
+                                                           else ((converteString j (x+1,y)) ++ " "  ++ desenhaPowers (contaPowers (h:t)) []):moveDireita c j (x,y)
+                                 else (h:t):moveDireita c j (x,y)
+
+
+{-  |Altera a posicao do jogador no estado do jogo quando move para cima -}
+moveCima :: [String] -> Int -> (Int,Int) -> [String]
+moveCima [] _ _ = []
+moveCima ((h:t):c) j (x,y) = if h==(intToDigit j) then if (contaPowers (h:t))==0 then (converteString j (x,y-1)):moveCima c j (x,y) 
+                                                           else ((converteString j (x,y-1)) ++ " " ++ desenhaPowers (contaPowers (h:t)) []):moveCima c j (x,y)
+                                 else (h:t):moveCima c j (x,y)
+
+
+{- | Altera a posicao do jogador no estado do jogo quando move para baixo -}
+moveBaixo :: [String] -> Int -> (Int,Int) -> [String]
+moveBaixo [] _ _ = []
+moveBaixo ((h:t):c) j (x,y) = if h==(intToDigit j) then if (contaPowers (h:t))==0 then (converteString j (x,y+1)):moveBaixo c j (x,y) 
+                                                           else ((converteString j (x,y+1)) ++ " " ++ desenhaPowers (contaPowers (h:t)) []):moveBaixo c j (x,y)
+                                 else (h:t):moveBaixo c j (x,y)
+
+
+
+{- Converte a posicao do jogador para string, por exemplo,
+   converteString 0 (3,3) fica "0 3 3" -}
+converteString :: Int -> (Int,Int) -> String
+converteString j (x,y) = show j ++ " " ++ show x ++ " " ++ show y 
+
+
+-- a coluna b linha
+-- x coluna y linha
+
+{- | Conta os powers que um jogador tem -}
+contaPowers :: String -> Int 
+contaPowers [] = 0
+contaPowers (x:xs) = if x=='+' then 1+ contaPowers xs else contaPowers xs 
+
+{- | Desenha os powers depois da posicao do jogador -}
+desenhaPowers :: Int -> String -> String
+desenhaPowers 0 [] = []
+desenhaPowers n [] = '+' : desenhaPowers (n-1) []
+
+ 
+
+{- | Vai verificar se o jogador tem algum power -}
+verificaPower :: (Int,Int) -> [(Int,Int)] -> Bool
+verificaPower _ [] = False 
+verificaPower (x,y) ((h,hs):ys) = if (x==h) && (y==hs) then True else verificaPower (x,y) ys 
+
+{- | Vai aidicionar um power ao jogador, caso o jogador mover para uma posição e nessa posição tiver um power -}
+adicionaPower :: [String] -> Int -> [String]
+adicionaPower [] _ = []
+adicionaPower ((x:xs):ys) jogador = if (x== intToDigit jogador) then if last ((x:xs)) == '+' then ((x:xs) ++"+"):ys else ((x:xs) ++ " " ++ "+" ):ys else (x:xs):adicionaPower ys jogador 
+
+
+
+
+
+
+
+{- | Verifica se pode mover para a esquerda -}
+verificaMapaEsquerda :: Int -> Int -> (Int,Int) -> [String] -> Bool
+verificaMapaEsquerda a b (x,y) ((h:t):c) = if b==0 then verificaMapaEsquerda 0 (b+1) ((x-1),y) c else
+                                           if b==y && a/=x then verificaMapaEsquerda (a+1) b (x,y) (t:c) else 
+                                           if b/=y then verificaMapaEsquerda 0 (b+1) (x,y) c else 
+                                           if (b==y && a==x) && (h=='#' || h=='?') then False else True
+                                
+
+{- | Verifica se pode mover para a direita -}
+verificaMapaDireita :: Int -> Int -> (Int,Int) -> [String] -> Bool
+verificaMapaDireita a b (x,y) ((h:t):c) =  if b==0 then verificaMapaDireita 0 (b+1) ((x+1),y) c else
+                                           if b==y && a/=x then verificaMapaDireita (a+1) b (x,y) (t:c) else 
+                                           if b/=y then verificaMapaDireita 0 (b+1) (x,y) c else 
+                                           if (b==y && a==x) && (h=='#' || h=='?') then False else True
+                                
+
+{- Verifica se pode mover para cima -}
+verificaMapaCima :: Int -> Int -> (Int,Int) -> [String] -> Bool
+verificaMapaCima a b (x,y) ((h:t):c) =     if y==1 then False else
+                                           if b==0 then verificaMapaCima 0 (b+1) (x,(y-1)) c else 
+                                           if b==y && a/=x then verificaMapaCima (a+1) b (x,y) (t:c) else 
+                                           if b/=y then verificaMapaCima 0 (b+1) (x,y) c else 
+                                           if (b==y && a==x) && (h=='#' || h=='?') then False else True
+                                
+
+
+{- Verifica se pode mover para baixo -}
+verificaMapaBaixo :: Int -> Int -> (Int,Int) -> [String] -> Bool
+verificaMapaBaixo a b (x,y) ((h:t):c) =    if b==0 then verificaMapaBaixo 0 (b+1) (x,(y+1)) c else
+                                           if b==y && a/=x then verificaMapaBaixo (a+1) b (x,y) (t:c) else 
+                                           if b/=y then verificaMapaBaixo 0 (b+1) (x,y) c else 
+                                           if (b==y && a==x) && (h=='#' || h=='?') then False else True
+                                
+
+
+{-| Percorre o estado de jogo todo e guarda a linha que começar por '+'-}
+arranjaCoordenadasPowersUps :: [String] -> [String] 
+arranjaCoordenadasPowersUps [] = []
+arranjaCoordenadasPowersUps ((x:xs):ys) = if x=='+' then (x:xs) : arranjaCoordenadasPowersUps ys else arranjaCoordenadasPowersUps ys
+
+{- | Apaga o '+'  -}
+apagaMais :: [String] -> [String]
+apagaMais [] = [] 
+apagaMais ((x:xs):ys) = if x=='+' then apagaMais (xs:ys) else (x:xs):apagaMais ys
+
+{- | Apaga um espaço -}
+apagaUmEspaco :: [String] -> Int -> [String]
+apagaUmEspaco [] _ = []
+apagaUmEspaco ((x:xs):ys) contador = if contador ==0 && x== ' ' then apagaUmEspaco (xs:ys) (contador+1) else 
+                                   if contador /=0 && x== ' ' then (x:xs):apagaUmEspaco (ys) 0 else (x:xs):apagaUmEspaco (ys) 0
+
+{- | Devolve a 1ª coordenada da string, neste caso a coluna. (Ex: primeiraCoordenada "2 3" -> 2)-}
+primeiraCoordenada :: String -> String
+primeiraCoordenada (x:xs) = if x==' ' then [] else x:primeiraCoordenada xs 
+
+{- | Devolve a 2ª coordenada da string, neste caso a linha. (Ex: segundaCoordenada "2 3" -> 3)-}
+segundaCoordenada :: String -> Int -> String
+segundaCoordenada [] _ = []
+segundaCoordenada (x:xs) contador = if contador==0 && x/=' ' then segundaCoordenada xs contador else 
+                                  if contador==0 && x==' ' then segundaCoordenada xs (contador+1) else 
+                                  if contador /=0 then x : segundaCoordenada xs (contador) else []
+
+{- | Dá a lista de Power Ups sob forma de coordenada-}
+listaPowerUps :: [String] -> [(Int,Int)] 
+listaPowerUps [] = []
+listaPowerUps ((x:xs):ys) = (read (primeiraCoordenada (x:xs)) :: Int, read (segundaCoordenada (x:xs) 0) :: Int) : listaPowerUps ys 
+
+{- | Dá a lista de Powers Ups no formato de coordenada sem o '+' e espaço.-}
+listaPowerDireita :: [String] -> [(Int,Int)] 
+listaPowerDireita lista = listaPowerUps (apagaUmEspaco (apagaMais (arranjaCoordenadasPowersUps lista) ) 0)
+
+{- | Apaga o power do estado do jogo -}
+apagaPower :: [String] -> String -> [String]
+apagaPower [] [] = []
+apagaPower l [] = l 
+apagaPower [] _ = [] 
+apagaPower ((x:xs):t) (y:ys) = if condicao (x:xs) (y:ys) then t else (x:xs):apagaPower t (y:ys)
+
+{- | Função auxiliar para o apagaPower-}
+condicao :: String -> String -> Bool
+condicao [] [] = True
+condicao _ [] = False 
+condicao [] _ = False
+condicao (x:xs) (y:ys) = if x==y then condicao xs ys else condicao xs (y:ys) 
+
+
+
+{- | Percorre o estado do jogo e guarda a linha se começar por '*' -}
+bombasColocadas :: [String] -> [String]
+bombasColocadas [] = []
+bombasColocadas ((x:xs):ys) = if x=='*' then (x:xs):bombasColocadas ys else bombasColocadas ys 
+{- | Percorre a lista de bombas colocadas e guarda os jogadores que colocaram as respetivas bombas -}
+arranjaJogador :: [String] -> Int -> [Int] 
+arranjaJogador [] _ = []
+arranjaJogador ((x:xs):ys) contador = if contador==0 && x==' ' then arranjaJogador (xs:ys) (contador+1) else
+                                      if contador==0 && x/=' ' then arranjaJogador (xs:ys) contador else 
+                                      if contador==3 && (x==(intToDigit 0) || x==(intToDigit 1) || x==(intToDigit 2) || x==(intToDigit 3)) then (digitToInt x):arranjaJogador ys 0 else 
+                                      if contador /=0 && x== ' ' then arranjaJogador (xs:ys) (contador+1) else arranjaJogador (xs:ys) (contador) 
+
+
+
+{- | Verifica se um determinado jogador já colocou bomba -}
+verificaJogador :: Int -> [Int] -> Bool
+verificaJogador x [] = False 
+verificaJogador x (y:ys) = if x==y then True else verificaJogador x ys 
+                                        
+
+
+-- Muita coisa para arranjar coordenadas!
+
+{- | Converte as coordenadas para string (Ex: converCoordsString (2,3) -> "2 3"-}
+converCoordsString :: (Int,Int) -> String
+converCoordsString (x,y) = show x ++ " " ++ show y
+
+{- | Percorre o estado de jogo e arranja a linha de coordenadas do respetivo jogador -}
+arranjaCoordenadas :: Int -> [String] -> String
+arranjaCoordenadas _ [] = []
+arranjaCoordenadas j ((h:t):c) = if h==(intToDigit j) then (h:t) else arranjaCoordenadas j c
+
+
+{- | Percorre a linha do jogador e devolve a coluna e linha -}
+coordenadas :: String -> Int -> Int -> [Int] 
+coordenadas [] _ _ = []
+coordenadas (x:xs) j contador = if (x/=intToDigit j) && contador == 0 then [] else 
+                                if (x==(intToDigit j) && contador /= 0) then (digitToInt x+((contador-1)*10)) :coordenadas xs j contador else
+                                if x==' ' then coordenadas xs j (contador+1) else
+                                if x=='+' then coordenadas xs j contador else 
+                                if (x/=(intToDigit j) ) then (digitToInt x+((contador-1)*10)) : coordenadas xs j contador else coordenadas xs j (contador+1)
+{- | Converte a coordenada para o número original -}
+coordY :: [Int] -> String 
+coordY [] = []
+coordY (x:xs) = if x < 20 then intToDigit (x-10):coordY xs else coordY xs
+{- | Converte a linha para o número original -}
+coordX :: [Int] -> String 
+coordX [] = []
+coordX (x:xs) = if x >= 20 then intToDigit (x-20):coordX xs else coordX xs
+
+{-| Verifica se um jogador existe no estado de jogo -}
+verificaJogadorEst :: Int -> [String] -> Bool 
+verificaJogadorEst j [] = False 
+verificaJogadorEst j ((x:xs):ys) = if (intToDigit j)==x then True else verificaJogadorEst j ys 
+
+{- | Converte a posição do jogador para coordenada -}
+parCoordenadas :: String -> Int -> (Int , Int)   
+parCoordenadas lista1 j =  (read (coordY (coordenadas lista1 j 0 )) :: Int, read (coordX (coordenadas lista1 j 0 ))::Int)
+
+
+{- | Função Main -}
+main :: IO ()
+main = do a <- getArgs
+          let p = a !! 0
+          let c = a !! 1
+          w <- getContents
+          if length a == 2 && length p == 1 && isDigit (head p) && length c == 1 && head c `elem` "UDLRB"
+             then putStr $ unlines $ move (lines w) (read p) (head c)
+             else putStrLn "Parâmetros inválidos"

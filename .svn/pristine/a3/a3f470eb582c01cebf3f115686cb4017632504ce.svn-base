@@ -1,0 +1,365 @@
+
+module Tarefa4 where
+
+import Data.Char (isDigit)
+import System.Environment
+import Text.Read
+import Data.Maybe
+import Data.Char
+import Tarefa1
+
+
+
+
+
+{-| Função principal -}
+avanca :: [String] -> Float -> [String]
+avanca jogo tempo =  if tempo<= fromIntegral(((contaLinhas jogo)-2)^2) then desenhaEspiral (coordenadaEspiralDireita 1 1 1 ((contaLinhas jogo)-2) (fromIntegral(((contaLinhas jogo)-2)^2)-tempo) )                      (auxiliar jogo tempo) 0 0 (contaLinhas jogo) 
+                     else auxiliar jogo tempo
+
+	
+{-| Função principal para facilitar a leitura-}
+auxiliar :: [String] -> Float -> [String]
+auxiliar jogo tempo = alteraBombas (percorreMapBomb2 (percorreMapa3 (apagaBombasExplodidas (bombasExplodeFinalmente(bombaT1(bombasColocadasInf jogo)) jogo)) (jogadoresInf jogo) (zonaExplosaoList jogo (bombasColocadasInf jogo))) (zonaExplosaoList jogo (bombasColocadasInf jogo)))
+
+
+{-| Guarda todas as bombas com tempo = 1 -}
+bombaT1 :: [((Int,Int),Int,Int,Int)] -> [((Int,Int),Int,Int,Int)]
+bombaT1 [] = []
+bombaT1 (((x,y),j,r,t):xs) = if t==1 then ((x,y),j,r,t):bombaT1 xs else bombaT1 xs 
+
+
+           
+
+{-| Define até onde pode a bomba alcançar em cima -}
+verificaRaioCima1 :: [String] -> Int -> Int -> Int -> ((Int,Int),Int,Int,Int) -> Int
+verificaRaioCima1 [] lin col cond ((x,y),j,r,t) = cond 
+verificaRaioCima1 ((h:xs):ys) lin col cond ((x,y),j,r,t) = if lin==0 then verificaRaioCima1 ys (lin+1) 0 0 ((x,y),j,r,t) else 
+	                                                       if (lin>=(y-r) && lin < y) && col /=x then verificaRaioCima1 (xs:ys) lin (col+1) cond ((x,y),j,r,t) else 
+	                                                       if (lin>=(y-r) && lin < y && col ==x) && h=='#' then verificaRaioCima1 ys (lin+1) 0 0 ((x,y),j,r,t) else
+                                                           if (lin>=(y-r) && lin < y && col ==x) && h/='#' then verificaRaioCima1 ys (lin+1) 0 (cond+1) ((x,y),j,r,t) else verificaRaioCima1 ys (lin+1) 0 cond ((x,y),j,r,t)
+
+{-| Define até onde pode a bomba alcançar em baixo -}
+verificaRaioBaixo1 :: [String] -> Int -> Int -> Int -> ((Int,Int),Int,Int,Int) -> Int
+verificaRaioBaixo1 [] lin col cond ((x,y),j,r,t) = cond 
+verificaRaioBaixo1 ((h:xs):ys) lin col cond ((x,y),j,r,t) = if lin==0 then verificaRaioBaixo1 ys (lin+1) 0 0 ((x,y),j,r,t) else 
+	                                                        if (lin<=(y+r) && lin > y) && col /=x then verificaRaioBaixo1 (xs:ys) lin (col+1) cond ((x,y),j,r,t) else 
+	                                                        if (lin<=(y+r) && lin > y && col ==x) && h=='#' then verificaRaioBaixo1 ys (lin+y+r) 0 cond ((x,y),j,r,t) else
+                                                            if (lin<=(y+r) && lin > y && col ==x) && h/='#' then verificaRaioBaixo1 ys (lin+1) 0 (cond+1) ((x,y),j,r,t) else 
+                                                            if h/='#' then verificaRaioBaixo1 ys (lin+1) 0 cond ((x,y),j,r,t) else  verificaRaioBaixo1 ys (lin+1) 0 cond ((x,y),j,r,t)
+                                                            
+{-| Define até onde pode a bomba alcançar à esquerda -}
+verificaRaioEsquerda1 :: [String] -> Int -> Int -> Int -> ((Int,Int),Int,Int,Int) -> Int
+verificaRaioEsquerda1 [] lin col cond ((x,y),j,r,t) = cond 
+verificaRaioEsquerda1 _ _ _ cond ((x,y),j,0,t) = cond 
+verificaRaioEsquerda1 ((h:xs):ys) lin col cond ((x,y),j,r,t) = if lin==0 then verificaRaioEsquerda1 ys (lin+1) 0 0 ((x,y),j,r,t) else 
+	                                                           if lin/=y then verificaRaioEsquerda1 ys (lin+1) 0 0 ((x,y),j,r,t) else
+	                                                           if (lin==y && col<(x-r)) then verificaRaioEsquerda1 (xs:ys) lin (col+1) 0 ((x,y),j,r,t) else 
+	                                                           if (lin==y && col>=(x-r) && col<=x) && h/='#' then verificaRaioEsquerda1 (xs:ys) lin (col+1) (cond+1) ((x,y),j,(r-1),t) else
+	                                                           if (lin==y && col>=(x-r) && col<=x) && h=='#' then verificaRaioEsquerda1 (xs:ys) lin (col+1) 0 ((x,y),j,(r-1),t) else
+	                                                           if (lin==y && col>x) then cond else  verificaRaioEsquerda1 ys (lin+1) col cond ((x,y),j,(r-1),t)
+
+{-| Define até onde pode a bomba alcançar à direita -}
+verificaRaioDireita1 :: [String] -> Int -> Int -> Int -> ((Int,Int),Int,Int,Int) -> Int
+verificaRaioDireita1 [] lin col cond ((x,y),j,r,t) = cond 
+verificaRaioDireita1 _ _ _ cond ((x,y),j,0,t) = cond 
+verificaRaioDireita1 ((h:xs):ys) lin col cond ((x,y),j,r,t) = if lin==0 then verificaRaioDireita1 ys (lin+1) 0 0 ((x,y),j,r,t) else 
+	                                                          if lin/=y then verificaRaioDireita1 ys (lin+1) 0 0 ((x,y),j,r,t) else
+	                                                          if (lin==y && col<x) then verificaRaioDireita1 (xs:ys) lin (col+1) 0 ((x,y),j,r,t) else 
+	                                                          if (lin==y && col>=x && col<=(x+r) && h/='#') then verificaRaioDireita1 (xs:ys) lin (col+1) (cond+1) ((x,y),j,(r-1),t) else
+	                                                          if (lin==y && col>=x && col<=(x+r) && h=='#')then verificaRaioDireita1 (xs:ys) lin (col+1) 0 ((x,y),j,(r-1),t) else
+	                                                          if (lin==y && col>(x+r)) then cond else  verificaRaioDireita1 ys (lin+1) col cond ((x,y),j,(r-1),t)
+
+
+	                                                            
+{- | Todas as bombas que tiverem com o tempo igual a 1 iram rebentar-}
+bombasExplodeFinalmente::[((Int,Int),Int,Int,Int)] -> [String] -> [String]
+bombasExplodeFinalmente [] mapa = mapa 
+bombasExplodeFinalmente (((x,y),j,r,t):xs) mapa = bombasExplodeFinalmente xs (explodeBomba mapa ((x,y),j,r,t))
+	                                               
+{-| Apenas uma bomba que tiverem com o tempo igual a 1 iram rebentar-}	                                                           
+explodeBomba :: [String] -> ((Int,Int),Int,Int,Int) -> [String]
+explodeBomba [] _ = [] 
+explodeBomba mapa ((x,y),j,r,t) = explodeHorizontal (explodeBaixo (explodeCima mapa (x,y) 0 0 (verificaRaioCima1 mapa 0 0 0 ((x,y),j,r,t)) ) (x,y) 0 0 (verificaRaioBaixo1 mapa 0 0 0 ((x,y),j,r,t)) ) (x,y)  0 0 (verificaRaioEsquerda1 mapa 0 0 0 ((x,y),j,r,t) )
+ 
+ 
+explodeCima :: [String] -> (Int,Int) -> Int -> Int -> Int -> [String]
+explodeCima [] _ _ _ _ = []
+explodeCima ((x:xs):ys) (a,b) lin col r = if r==0 then ((x:xs):ys) else 
+	                                      if lin==0 then (x:xs):explodeCima ys (a,b) (lin+1) 0 r else 
+	                                      if lin>=(b-r) && lin<b then apagaPontos (x:xs) 0 a : explodeCima ys (a,b) (lin+1) col r else (x:xs):explodeCima ys (a,b) (lin+1) col r 
+
+
+{-| Rebenta tudo o que estiver em baixo até alcançar o máximo do raio -}
+explodeBaixo :: [String] -> (Int,Int) -> Int -> Int -> Int -> [String]
+explodeBaixo [] _ _ _ _ = []
+explodeBaixo ((x:xs):ys) (a,b) lin col r = if r==0 then ((x:xs):ys) else 
+	                                       if lin==0 then (x:xs):explodeBaixo ys (a,b) (lin+1) 0 r else 
+	                                       if lin<=(b+r) && lin>b then apagaPontos (x:xs) 0 a : explodeBaixo ys (a,b) (lin+1) col r else (x:xs):explodeBaixo ys (a,b) (lin+1) col r 
+
+{-| Rebenta tudo o que estiver à esquerda e direita até ao máximo do raio -}
+explodeHorizontal :: [String] -> (Int,Int) -> Int -> Int -> Int -> [String]
+explodeHorizontal [] _ _ _ _ = []
+explodeHorizontal ((x:xs):ys) (a,b) lin col r = if lin==0 then (x:xs):explodeHorizontal ys (a,b) (lin+1) 0 r else 
+	                                            if lin/=b then (x:xs):explodeHorizontal ys (a,b) (lin+1) 0 r else (apagaPontosHorizontal (x:xs) 0 (a-r) (a+r)):explodeHorizontal ys (a,b) (lin+1) 0 r
+	                                            	
+
+{- | Apaga tudo o que tiver na horizontal -}
+apagaPontosHorizontal :: String -> Int -> Int -> Int -> String 
+apagaPontosHorizontal [] _ _ _ = [] 
+apagaPontosHorizontal (x:xs) col colI colF = if col<colI  then x:apagaPontosHorizontal xs (col+1) colI colF else 
+	                                         if col>=colI && col<=colF && x/='#' then ' ':apagaPontosHorizontal xs (col+1) colI colF else 
+	                                         (x:xs)
+{- | Apaga tudo o que tiver na coluna-}
+apagaPontos :: String ->  Int -> Int -> String
+apagaPontos [] _ _  = [] 
+apagaPontos (x:xs) coluna col = if coluna==col && x/='#' then ' ':xs else x:apagaPontos xs (coluna+1) col 
+
+
+
+------------ Arranjar as coordenadas das bombas
+
+
+
+{- | Converte as bombas colocadas em informação-}
+bombasColocadasInf :: [String] -> [((Int,Int),Int,Int,Int)]
+bombasColocadasInf [] = [] 
+bombasColocadasInf ((x:xs):ys) = if x=='*' then informacaoBomba (x:xs) : bombasColocadasInf ys else bombasColocadasInf ys 
+
+{- | Percorre a string e guarda as coordenadas das bombas colocadas -}
+coordenadasBombasColocadas :: String -> Int -> String 
+coordenadasBombasColocadas [] _ = [] 
+coordenadasBombasColocadas (x:xs) contador = if x=='*' then coordenadasBombasColocadas xs contador else	
+                                             if x==' ' && contador==1 then ' ':coordenadasBombasColocadas xs (contador+1) else 
+                                             if x==' ' && contador/=1 then coordenadasBombasColocadas xs (contador+1) else 	
+                                             if contador==1 then x:coordenadasBombasColocadas xs contador else
+                                             if contador==2 then x:coordenadasBombasColocadas xs contador else coordenadasBombasColocadas xs contador
+
+
+{- | Devolve a 1ª coordenada da string, neste caso a coluna. (Ex: primeiraCoordenada "2 3" -> 2)-}
+primeiraCoordenada :: String -> String
+primeiraCoordenada [] = []
+primeiraCoordenada (x:xs) = if x==' ' then [] else x:primeiraCoordenada xs 
+
+{- | Devolve a 2ª coordenada da string, neste caso a linha. (Ex: segundaCoordenada "2 3" -> 3)-}
+segundaCoordenada :: String -> Int -> String
+segundaCoordenada [] _ = []
+segundaCoordenada (x:xs) contador = if contador==0 && x/=' ' then segundaCoordenada xs contador else 
+                                  if contador==0 && x==' ' then segundaCoordenada xs (contador+1) else 
+                                  if contador /=0 then x : segundaCoordenada xs (contador) else []
+
+
+{- | Guarda só a linha e coluna da bomba-}
+converteCoordenadas :: String -> (Int,Int)
+converteCoordenadas lista = (read (primeiraCoordenada(coordenadasBombasColocadas lista 0))::Int , read (segundaCoordenada (coordenadasBombasColocadas lista 0) 0)::Int)
+
+{- | Percorre a string e guarda o raio da bomba colocada -}
+arranjaRaio :: String -> Int -> Int
+arranjaRaio (x:xs) contador | x==(intToDigit 1) && contador==4 = 1
+                            | x==(intToDigit 2) && contador==4 = 2
+                            | x==(intToDigit 3) && contador==4 = 3 
+                            | x==' ' = arranjaRaio xs (contador+1)
+                            | otherwise = arranjaRaio xs contador
+
+{- | Percorre a string e guarda o jogador que colocou a bomba -}
+arranjaJogador :: String -> Int -> Int
+arranjaJogador (x:xs) contador | x== (intToDigit 0) && contador==3 = 0
+                               | x== (intToDigit 1) && contador==3 = 1
+                               | x== (intToDigit 2) && contador==3 = 2
+                               | x== (intToDigit 3) && contador==3 = 3 
+                               | x==' ' = arranjaJogador xs (contador+1)
+                               | otherwise = arranjaJogador xs contador
+
+{- | Percorre a string e guarda o tempo que falta para a bomba rebentar -}
+arranjaTempo :: String -> Int -> String
+arranjaTempo [] _ = []
+arranjaTempo (x:xs) contador = if x==' ' then arranjaTempo xs (contador+1) else 
+	                           if contador==5 then x:arranjaTempo xs contador else arranjaTempo xs contador 
+{- | Converte o tempo para inteiro -}
+converteTempo :: String -> Int 
+converteTempo l = read (arranjaTempo l 0) :: Int 
+
+
+{- | Guarda a informação da bomba na forma de ((col,lin),jog,raio,tempo)-}
+informacaoBomba :: String -> ((Int,Int),Int,Int,Int)
+informacaoBomba lista = ( (converteCoordenadas lista), (arranjaJogador lista 0), (arranjaRaio lista 0), (converteTempo lista) )
+
+{- | Apaga as bombas que explodiram no estado de jogo -}
+apagaBombasExplodidas:: [String] -> [String]
+apagaBombasExplodidas [] = [] 
+apagaBombasExplodidas ((x:xs):hs) = if x=='*' then if ((read (arranjaTempo (x:xs) 0))::Int )==1 then apagaBombasExplodidas hs else (x:xs):apagaBombasExplodidas hs
+                                                   else (x:xs):apagaBombasExplodidas hs 
+---------------------------------------------------------------
+
+{- | Vé a zona da explosão -}
+zonaExplosao :: ((Int,Int),Int,Int,Int) ->  Int -> Int -> Int -> Int -> (Int,Int,Int,Int,(Int,Int))
+zonaExplosao ((a,b),j,r,t) raioC raioB raioE raioD  = ((b-raioC),(b+raioB),(a-raioE),(a+raioE),(a,b))
+
+
+
+percorreMapa :: [String] -> (Int,Int,Int) -> (Int,Int,Int,Int,(Int,Int)) -> [String]
+percorreMapa [] _ _ = [] 
+percorreMapa ((x:xs):ys) (a,b,j) (xi,xf,yi,yf,(xx,yy)) = if x/=(intToDigit 0) && x/=(intToDigit 1) && x/=(intToDigit 2) && x/=(intToDigit 3) then (x:xs):percorreMapa ys (a,b,j) (xi,xf,yi,yf,(xx,yy)) else 
+	                                             if x==(intToDigit j) then if (a>=yi && a<=yf && b>=xi && b<=xf) then ys else (x:xs):percorreMapa ys (a,b,j) (xi,xf,yi,yf,(xx,yy)) 
+	                                             else (x:xs):percorreMapa ys (a,b,j) (xi,xf,yi,yf,(xx,yy))
+
+{- | Guarda todas as zonas de explosão possiveis -}
+zonaExplosaoList :: [String] -> [((Int,Int),Int,Int,Int)] -> [(Int,Int,Int,Int,(Int,Int))]
+zonaExplosaoList _ [] = [] 
+zonaExplosaoList jogo (((col,lin),j,r,t):xs) = if t==1 then zonaExplosao ((col,lin),j,r,t) (verificaRaioCima1 jogo 0 0 0 ((col,lin),j,r,t)) (verificaRaioBaixo1 jogo 0 0 0 ((col,lin),j,r,t)) (verificaRaioEsquerda1 jogo 0 0 0 ((col,lin),j,r,t)) (verificaRaioDireita1 jogo 0 0 0 ((col,lin),j,r,t)) : zonaExplosaoList jogo xs
+	                                           else zonaExplosaoList jogo xs
+
+{- | Percorre o mapa e rebenta a bomba tudo o que estiver no alcance-}
+percorreMapa2 :: [String] -> [(Int,Int,Int)] -> (Int,Int,Int,Int,(Int,Int)) -> [String]
+percorreMapa2 mapa [] _ = mapa
+percorreMapa2 mapa ((a,b,j):xs) (xi,xf,yi,yf,(xx,yy)) =percorreMapa2 (percorreMapa mapa (a,b,j) (xi,xf,yi,yf,(xx,yy))) xs (xi,xf,yi,yf,(xx,yy))
+
+{- | Percorre o mapa e rebenta todas as bombas que estão prestes a explodir -}
+percorreMapa3 :: [String] -> [(Int,Int,Int)] -> [(Int,Int,Int,Int,(Int,Int))] -> [String]
+percorreMapa3 mapa [] [] = mapa
+percorreMapa3 mapa [] _ = mapa
+percorreMapa3 mapa _ [] = mapa 
+percorreMapa3 mapa lista ((xi,xf,yi,yf,(a,b)):ys) = percorreMapa3 (percorreMapa2 mapa lista (xi,xf,yi,yf,(a,b))) lista ys 
+
+
+--------------------------------------------------------------------
+
+{- | Verifica se a bomba está no alcance da outra e se estiver muda de tempo para 1 -}
+verificaBomba :: ((Int,Int),Int,Int,Int) -> (Int,Int,Int,Int,(Int,Int)) -> String
+verificaBomba ((col,lin),j,r,t) (xi,xf,yi,yf,(a,b)) = if (col>=yi && col<=yf && lin>=xi && lin<=xf ) then "* " ++ show col ++ " " ++ show lin ++ " " ++ show j ++ " " ++ show r ++ " " ++ show a ++ " " ++ show b 
+                                                else "* " ++ show col ++ " " ++ show lin ++ " " ++ show j ++ " " ++ show r ++ " " ++ show t   
+
+{- | Percorre o mapa e muda o estado da bomba -}
+percorreMapBomb :: [String] -> (Int,Int,Int,Int,(Int,Int)) -> [String]
+percorreMapBomb [] _ = [] 
+percorreMapBomb ((x:xs):ys) (xi,xf,yi,yf,(a,b)) = if (x=='*') then verificaBomba (informacaoBomba (x:xs)) (xi,xf,yi,yf,(a,b)) : percorreMapBomb ys (xi,xf,yi,yf,(a,b)) else (x:xs):percorreMapBomb ys (xi,xf,yi,yf,(a,b))
+
+{- | Percorre o mapa e muda todos os estados das bombas -}
+percorreMapBomb2 :: [String] -> [(Int,Int,Int,Int,(Int,Int))] -> [String]
+percorreMapBomb2 mapa [] = mapa 
+percorreMapBomb2 mapa ((xi,xf,yi,yf,(a,b)):xs) = percorreMapBomb2 (percorreMapBomb mapa (xi,xf,yi,yf,(a,b))) xs 
+
+
+
+
+------------------------ Parte dos jogadores, se os jogadores estiverem no alcance da bomba morrem 
+{- | Percorre o mapa e guarda os jogadores -}
+getJogadores :: [String] -> [String] 
+getJogadores [] = []
+getJogadores ((x:xs):hs) = if x==(intToDigit 0) || x==(intToDigit 1) || x==(intToDigit 2) || x==(intToDigit 3) then (x:xs):getJogadores hs else getJogadores hs 
+
+{- | Guarda a coluna-}
+fstCoordJog :: String -> Int -> String
+fstCoordJog [] _ = [] 
+fstCoordJog (x:xs) contador = if x==' ' then fstCoordJog xs (contador+1) else 
+	                          if x/=' ' && contador==1 then x:fstCoordJog xs (contador) else fstCoordJog xs contador
+{- | Guarda a linha-}
+sndCoordJog :: String -> Int -> String
+sndCoordJog [] _ = [] 
+sndCoordJog (x:xs) contador = if x==' ' then sndCoordJog xs (contador+1) else 
+	                          if x/=' ' && contador==2 then x:sndCoordJog xs contador else sndCoordJog xs contador
+{- | Guarda o jogador-}
+jogador :: String -> Char
+jogador (x:xs) = x 
+
+{- | Guarda a informação dos jogadores em forma de (coluna,linha,jogador)-}
+jogadoresAux :: [String] -> [(Int,Int,Int)]
+jogadoresAux [] = [] 
+jogadoresAux ((x:xs):hs) = (read (fstCoordJog (x:xs) 0)::Int , read (sndCoordJog (x:xs) 0)::Int, digitToInt (jogador (x:xs))):jogadoresAux hs
+
+{- | Percorre o mapa e guarda e depois converte a informação dos jogadores com a ajuda da função jogadoresAux -}
+jogadoresInf :: [String] -> [(Int,Int,Int)]
+jogadoresInf [] = [] 
+jogadoresInf l = jogadoresAux(getJogadores l)
+
+
+------------------------------------------
+{- | Altera o estado da bomba -}
+alteraBombaEstado :: String -> String 
+alteraBombaEstado [] = []
+alteraBombaEstado (x:xs) = escreveBomba (informacaoBomba (x:xs))
+
+{- | Muda o tempo da bomba -}
+escreveBomba :: ((Int,Int),Int,Int,Int) -> String 
+escreveBomba ((y,x),j,r,t) = "* " ++ show y ++ " " ++ show x ++ " " ++ show j ++ " " ++ show r ++ " " ++ show (t-1) 
+
+{- | Altera o tempo de  todas as bombas -}
+alteraBombas :: [String] -> [String] 
+alteraBombas [] = [] 
+alteraBombas ((x:xs):ys) = if x=='*' then alteraBombaEstado (x:xs):alteraBombas ys else (x:xs):alteraBombas ys 
+
+------------------------------------------- Efeito espiral
+{- | Verifica se já cumpre a condição do efeito da espiral-}
+condicaoEspiral :: Int -> [String] -> Bool 
+condicaoEspiral _ [] = False 
+condicaoEspiral x jogo = x<=(((contaLinhas jogo) -2)^2)
+
+{- | Conta o nº de linhas do mapa-}
+contaLinhas :: [String] -> Int 
+contaLinhas [] = 0 
+contaLinhas ((x:xs):ys) = if x=='#' then 1+contaLinhas ys else contaLinhas ys 
+
+
+{-| Vai percorrer o mapa e guarda a posição onde deve colocar um '#' à direita -}
+coordenadaEspiralDireita :: Int -> Int -> Int -> Int -> Float -> [(Int,Int)]
+coordenadaEspiralDireita x y min max tempo 
+             | tempo==0 = []
+             | y<max = (x,y):coordenadaEspiralDireita x (y+1) min max (tempo-1)
+             | y>=max = (x,y):coordenadaEspiralBaixo (x+1) y min max (tempo-1)
+                                            
+
+{-| Vai percorrer o mapa e guarda a posição onde deve colocar um '#' em baixo -}
+coordenadaEspiralBaixo :: Int -> Int -> Int -> Int -> Float -> [(Int,Int)]
+coordenadaEspiralBaixo x y min max tempo   
+            | tempo==0 = []
+            | x<max = (x,y):coordenadaEspiralBaixo (x+1) (y) min max (tempo-1)
+            | x>=max = (x,y):coordenadaEspiralEsquerda (x) (y-1) min max (tempo-1)
+                                            
+
+
+{-| Vai percorrer o mapa e guarda a posição onde deve colocar um '#' à esquerda -}
+coordenadaEspiralEsquerda :: Int -> Int -> Int -> Int -> Float -> [(Int,Int)]
+coordenadaEspiralEsquerda x y min max tempo   
+            | tempo==0 = []
+            | y>min = (x,y):coordenadaEspiralEsquerda (x) (y-1) min max (tempo-1)
+            | y<=min = (x,y):coordenadaEspiralCima (x-1) (y) (min+1) (max-1) (tempo-1)
+                            
+
+{-| Vai percorrer o mapa e guarda a posição onde deve colocar um '#' em cima-}
+coordenadaEspiralCima:: Int -> Int -> Int -> Int -> Float -> [(Int,Int)]
+coordenadaEspiralCima x y min max tempo    
+           | tempo==0 = []
+           | x>min = (x,y):coordenadaEspiralCima (x-1) (y) min max (tempo-1)
+           | x<=min = (x,y):coordenadaEspiralDireita (x) (y+1) (min) max (tempo-1)
+           
+
+{-| Vai percorrer o mapa e desenhar o efeito espiral-}
+desenhaEspiral :: [(Int,Int)] -> [String] -> Int -> Int -> Int -> [String]
+desenhaEspiral _ [] _ _ _ = []
+desenhaEspiral l ((h:t):hs) col lin dim = if (h=='#') then (desenhaLinhA l (h:t) col lin dim):desenhaEspiral l hs 0 (lin+1) dim else desenhaEspiral l hs 0 (lin+1) dim 
+
+{-| Desenha os '#' na linha-}
+desenhaLinhA :: [(Int,Int)] -> String -> Int -> Int -> Int -> String
+desenhaLinhA [] s _ _ _ = s
+desenhaLinhA _ [] _ _ _ = []
+desenhaLinhA ((x,y):xs) (h:t) col lin dim = 
+	                                        if verificaCondicao ((x,y):xs) col lin then '#':desenhaLinhA ((x,y):xs) (t) (col+1) lin dim else
+	                                        if (verificaCondicao ((x,y):xs) col lin) == False then h:desenhaLinhA ((x,y):xs) t (col+1) lin dim else 
+	                                        if lin/=y then desenhaLinhA xs (h:t) col lin dim else 
+	                                        if col>=(dim-2) then [] else '3':desenhaLinhA xs t (col+1) lin dim 
+
+{-| Verifica se a posição atual corresponde a algum elemento da lista de onde deve desenhar o efeito espiral -}
+verificaCondicao :: [(Int,Int)] -> Int -> Int -> Bool
+verificaCondicao [] _ _ = False 
+verificaCondicao ((x,y):xs) col lin = if lin==x && col==y then True else verificaCondicao xs col lin
+
+ 
+{- | Main -}
+main :: IO ()
+main = do
+    a <- getArgs
+    let ticks = readMaybe (a !! 0)
+    w <- getContents
+    if isJust ticks
+        then putStr $ unlines $ avanca (lines w) (fromJust ticks)
+        else putStrLn "Parâmetros inválidos"
